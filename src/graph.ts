@@ -6,10 +6,16 @@ export interface TodoTaskList {
   displayName: string;
 }
 
+export interface ChecklistItem {
+  displayName: string;
+  isChecked: boolean;
+}
+
 export interface TodoTask {
   id: string;
   title: string;
   status: string; // "notStarted" | "inProgress" | "completed" | "waitingOnOthers" | "deferred"
+  checklistItems: ChecklistItem[];
 }
 
 function createClient(accessToken: string): Client {
@@ -47,18 +53,24 @@ export async function getTaskLists(): Promise<TodoTaskList[]> {
   return lists;
 }
 
-/** Fetch all tasks in a given task list. */
+/** Fetch all tasks (with checklist items) in a given task list. */
 export async function getTasks(listId: string): Promise<TodoTask[]> {
   const token = await getAccessToken();
   const client = createClient(token);
 
   const tasks: TodoTask[] = [];
-  let url: string | null | undefined = `/me/todo/lists/${listId}/tasks`;
+  let url: string | null | undefined = `/me/todo/lists/${listId}/tasks?$expand=checklistItems`;
 
   while (url) {
     const response = await client.api(url).get();
     for (const item of response.value) {
-      tasks.push({ id: item.id, title: item.title, status: item.status });
+      const checklistItems: ChecklistItem[] = (item.checklistItems ?? []).map(
+        (ci: { displayName: string; isChecked: boolean }) => ({
+          displayName: ci.displayName,
+          isChecked: ci.isChecked,
+        })
+      );
+      tasks.push({ id: item.id, title: item.title, status: item.status, checklistItems });
     }
     url = response["@odata.nextLink"] ?? null;
   }

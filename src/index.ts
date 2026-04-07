@@ -14,8 +14,8 @@ program
   .command("export")
   .description("Export a Microsoft To-Do task list to Markdown")
   .requiredOption("--list <identifier>", "Task list ID or name (partial, case-insensitive)")
-  .requiredOption("--out <path>", "Output Markdown file path")
-  .action(async (opts: { list: string; out: string }) => {
+  .option("--out <path>", "Output Markdown file path (defaults to <list-name>.md)")
+  .action(async (opts: { list: string; out?: string }) => {
     try {
       await exportList(opts.list, opts.out);
     } catch (err: unknown) {

@@ -53,9 +53,10 @@ async function resolveList(identifier: string): Promise<TodoTaskList> {
  */
 export async function exportList(
   identifier: string,
-  outPath: string
+  outPath?: string
 ): Promise<void> {
   const list = await resolveList(identifier);
+  const resolvedPath = outPath ?? `${list.displayName}.md`;
   console.error(`Exporting list: ${list.displayName}`);
 
   const tasks = await getTasks(list.id);
@@ -65,15 +66,20 @@ export async function exportList(
   const completed = tasks.filter((t) => t.status === "completed");
   const ordered = [...incomplete, ...completed];
 
-  const lines = ordered.map((t) => {
+  const lines: string[] = [];
+  for (const t of ordered) {
     const checkbox = t.status === "completed" ? "[x]" : "[ ]";
-    return `- ${checkbox} ${t.title}`;
-  });
+    lines.push(`- ${checkbox} ${t.title.trimEnd()}`);
+    for (const ci of t.checklistItems) {
+      const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
+      lines.push(`  - ${subCheckbox} ${ci.displayName.trimEnd()}`);
+    }
+  }
 
   const markdown = lines.join("\n") + "\n";
-  fs.writeFileSync(outPath, markdown, "utf-8");
+  fs.writeFileSync(resolvedPath, markdown, "utf-8");
 
   console.error(
-    `Wrote ${tasks.length} task(s) to ${outPath}`
+    `Wrote ${tasks.length} task(s) to ${resolvedPath}`
   );
 }

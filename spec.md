@@ -31,7 +31,7 @@ todo export --list <list-identifier> --out <markdown-path>
 | Parameter | Required | Description |
 |---|---|---|
 | `--list <identifier>` | Yes | Identifies the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
-| `--out <path>` | Yes | File path where the Markdown output is written. The file is created or overwritten. |
+| `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
 
 ### List Resolution
 
@@ -47,18 +47,20 @@ If the partial match is **ambiguous** (more than one list matches), the CLI prin
 
 ## Output Format
 
-The generated Markdown file contains one line per task:
+The generated Markdown file contains one line per task. Incomplete tasks appear first, followed by completed tasks, preserving the API return order within each group.
+
+If a task has subtasks (checklist items), they appear as indented items immediately below the parent task:
 
 ```markdown
 - [ ] Buy groceries
+  - [x] Milk
+  - [ ] Eggs
 - [x] Send report
 - [ ] Book flight
 ```
 
-* `- [ ]` – task is **not completed** (status is anything other than `completed`).
-* `- [x]` – task is **completed**.
-
-Tasks appear in the order returned by the Microsoft Graph API.
+* `- [ ]` – task/subtask is **not completed**.
+* `- [x]` – task/subtask is **completed**.
 
 The file ends with a trailing newline.
 
