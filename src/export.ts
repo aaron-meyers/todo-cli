@@ -60,7 +60,12 @@ export async function exportList(
 
   const tasks = await getTasks(list.id);
 
-  const lines = tasks.map((t) => {
+  // Group incomplete tasks first, then completed, preserving API order within each group
+  const incomplete = tasks.filter((t) => t.status !== "completed");
+  const completed = tasks.filter((t) => t.status === "completed");
+  const ordered = [...incomplete, ...completed];
+
+  const lines = ordered.map((t) => {
     const checkbox = t.status === "completed" ? "[x]" : "[ ]";
     return `- ${checkbox} ${t.title}`;
   });
