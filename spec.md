@@ -23,7 +23,7 @@ Subsequent runs reuse the cached token (or silently refresh it) until it expires
 ## Usage
 
 ```
-todo export --list <list-identifier> --out <markdown-path>
+todo export --list <list-identifier> [--out <markdown-path>]
 ```
 
 ### Parameters
