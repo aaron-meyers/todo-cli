@@ -26,25 +26,29 @@ npm link
 ## Usage
 
 ```
-todo export --list <list-identifier> [--out <markdown-path>]
+todo export -l <list-identifier> [-o <markdown-path>] [--ordering-source <file>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
-| `--list <identifier>` | Yes | List ID or name (partial, case-insensitive) |
-| `--out <path>` | No | Output file path (defaults to `<list-name>.md`) |
+| `-l, --list <identifier>` | Yes | List ID or name (partial, case-insensitive) |
+| `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`) |
+| `--ordering-source <file>` | No | Text file from To-Do's "Share copy" to set task order |
 
 ### Examples
 
 ```bash
 # Export by list name
-todo export --list "Shopping"
+todo export -l "Shopping"
 
 # Export by partial name with custom output path
-todo export --list "shop" --out shopping.md
+todo export -l "shop" -o shopping.md
 
 # Export by list ID
 todo export --list "AQMkADAwATMw..." --out work.md
+
+# Export with ordering from a To-Do "Share copy" file
+todo export -l Daily --ordering-source ~/To-Do/Daily-share.md
 ```
 
 ### Authentication
