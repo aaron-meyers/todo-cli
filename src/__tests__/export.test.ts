@@ -215,8 +215,8 @@ describe("renderMarkdown", () => {
     const lines = md.trimEnd().split("\n");
     expect(lines).toEqual([
       "- [ ] Parent",
-      "  - [ ] Child 1",
-      "  - [x] Child 2",
+      "    - [ ] Child 1",
+      "    - [x] Child 2",
     ]);
   });
 
@@ -231,7 +231,7 @@ describe("renderMarkdown", () => {
       { displayName: "Sub   ", isChecked: false },
     ]);
     const md = renderMarkdown([t]);
-    expect(md).toContain("  - [ ] Sub\n");
+    expect(md).toContain("    - [ ] Sub\n");
   });
 
   it("applies ordering source when provided", () => {

@@ -76,8 +76,8 @@ If a task has subtasks (checklist items), they appear as indented items immediat
 
 ```markdown
 - [ ] Buy groceries
-  - [x] Milk
-  - [ ] Eggs
+    - [x] Milk
+    - [ ] Eggs
 - [x] Send report
 - [ ] Book flight
 ```

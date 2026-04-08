@@ -127,7 +127,7 @@ export function renderMarkdown(
     lines.push(`- ${checkbox} ${t.title.trimEnd()}`);
     for (const ci of t.checklistItems) {
       const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
-      lines.push(`  - ${subCheckbox} ${ci.displayName.trimEnd()}`);
+      lines.push(`    - ${subCheckbox} ${ci.displayName.trimEnd()}`);
     }
   }
 

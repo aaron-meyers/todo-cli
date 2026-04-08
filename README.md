@@ -59,8 +59,8 @@ On first run you'll be prompted to sign in via the device-code flow — open the
 
 ```markdown
 - [ ] Buy groceries
-  - [x] Milk
-  - [ ] Eggs
+    - [x] Milk
+    - [ ] Eggs
 - [x] Send report
 - [ ] Book flight
 ```
