@@ -11,9 +11,10 @@ import { getTaskLists, getTasks, type TodoTaskList, type TodoTask } from "./grap
  *
  * Throws if no list matches or if the partial match is ambiguous.
  */
-async function resolveList(identifier: string): Promise<TodoTaskList> {
-  const lists = await getTaskLists();
-
+export async function resolveList(
+  identifier: string,
+  lists: TodoTaskList[]
+): Promise<TodoTaskList> {
   // 1. Exact ID match
   const byId = lists.find((l) => l.id === identifier);
   if (byId) return byId;
@@ -49,12 +50,11 @@ async function resolveList(identifier: string): Promise<TodoTaskList> {
 }
 
 /**
- * Parse a "Share copy" text file from the To-Do app and return an ordered
- * list of task titles. The file uses ◯ for parent tasks, ◦/✔ for subtasks,
+ * Parse a "Share copy" text from the To-Do app and return an ordered
+ * list of task titles. The format uses ◯ for parent tasks, ◦/✔ for subtasks,
  * and optionally appends ★ for important tasks.
  */
-function parseOrderingSource(filePath: string): string[] {
-  const content = fs.readFileSync(filePath, "utf-8");
+export function parseOrderingSource(content: string): string[] {
   const titles: string[] = [];
 
   for (const line of content.split(/\r?\n/)) {
@@ -72,12 +72,11 @@ function parseOrderingSource(filePath: string): string[] {
 }
 
 /**
- * Sort tasks based on the order from an ordering source file.
- * Tasks found in the source are ordered by their position there;
+ * Sort tasks based on an ordered list of titles.
+ * Tasks found in the list are ordered by their position;
  * tasks not found are appended at the end in their original order.
  */
-function applyOrdering(tasks: TodoTask[], orderingSourcePath: string): TodoTask[] {
-  const orderedTitles = parseOrderingSource(orderingSourcePath);
+export function applyOrdering(tasks: TodoTask[], orderedTitles: string[]): TodoTask[] {
   const positionMap = new Map<string, number>();
   for (let i = 0; i < orderedTitles.length; i++) {
     positionMap.set(orderedTitles[i], i);
@@ -100,30 +99,26 @@ function applyOrdering(tasks: TodoTask[], orderingSourcePath: string): TodoTask[
 }
 
 /**
- * Export the tasks from a Microsoft To-Do list to a Markdown file.
+ * Render tasks to Markdown checkbox lines.
+ * Incomplete tasks appear first, followed by completed tasks.
+ * Subtasks are indented under their parent.
  */
-export async function exportList(
-  identifier: string,
-  outPath?: string,
-  orderingSourcePath?: string
-): Promise<void> {
-  const list = await resolveList(identifier);
-  const resolvedPath = outPath ?? `${list.displayName}.md`;
-  console.error(`Exporting list: ${list.displayName}`);
-
-  const tasks = await getTasks(list.id);
-
-  // Group incomplete tasks first, then completed, preserving API order within each group
+export function renderMarkdown(
+  tasks: TodoTask[],
+  orderingSource?: string
+): string {
   const incomplete = tasks.filter((t) => t.status !== "completed");
   const completed = tasks.filter((t) => t.status === "completed");
 
-  // Apply ordering source if provided
-  const orderedIncomplete = orderingSourcePath
-    ? applyOrdering(incomplete, orderingSourcePath)
-    : incomplete;
-  const orderedCompleted = orderingSourcePath
-    ? applyOrdering(completed, orderingSourcePath)
-    : completed;
+  let orderedIncomplete = incomplete;
+  let orderedCompleted = completed;
+
+  if (orderingSource) {
+    const orderedTitles = parseOrderingSource(orderingSource);
+    orderedIncomplete = applyOrdering(incomplete, orderedTitles);
+    orderedCompleted = applyOrdering(completed, orderedTitles);
+  }
+
   const ordered = [...orderedIncomplete, ...orderedCompleted];
 
   const lines: string[] = [];
@@ -136,7 +131,29 @@ export async function exportList(
     }
   }
 
-  const markdown = lines.join("\n") + "\n";
+  return lines.join("\n") + "\n";
+}
+
+/**
+ * Export the tasks from a Microsoft To-Do list to a Markdown file.
+ */
+export async function exportList(
+  identifier: string,
+  outPath?: string,
+  orderingSourcePath?: string
+): Promise<void> {
+  const lists = await getTaskLists();
+  const list = await resolveList(identifier, lists);
+  const resolvedPath = outPath ?? `${list.displayName}.md`;
+  console.error(`Exporting list: ${list.displayName}`);
+
+  const tasks = await getTasks(list.id);
+
+  const orderingSource = orderingSourcePath
+    ? fs.readFileSync(orderingSourcePath, "utf-8")
+    : undefined;
+
+  const markdown = renderMarkdown(tasks, orderingSource);
   fs.writeFileSync(resolvedPath, markdown, "utf-8");
 
   console.error(

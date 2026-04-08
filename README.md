@@ -68,10 +68,11 @@ Incomplete tasks appear first, followed by completed tasks.
 ```bash
 npm install       # install dependencies
 npm run build     # compile TypeScript to dist/
+npm test          # run unit tests
 npm link          # symlink the CLI globally
 ```
 
-After making changes, run `npm run build` to recompile.
+After making changes, run `npm run build` to recompile and `npm test` to verify.
 
 ## Specification
 
