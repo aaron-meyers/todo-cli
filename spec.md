@@ -23,7 +23,7 @@ Subsequent runs reuse the cached token (or silently refresh it) until it expires
 ## Usage
 
 ```
-todo export --list <list-identifier> [--out <markdown-path>]
+todo export --list <list-identifier> [--out <markdown-path>] [--ordering-source <file>]
 ```
 
 ### Parameters
@@ -32,6 +32,7 @@ todo export --list <list-identifier> [--out <markdown-path>]
 |---|---|---|
 | `--list <identifier>` | Yes | Identifies the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
+| `--ordering-source <file>` | No | Path to a text file produced by the To-Do app's "Share copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
 
 ### List Resolution
 
@@ -44,6 +45,28 @@ The `<list-identifier>` is resolved in the following order:
 If **no** list matches, the CLI prints an error listing all available lists and exits with code 1.
 
 If the partial match is **ambiguous** (more than one list matches), the CLI prints the matching lists and exits with code 1.
+
+## Ordering Source
+
+Microsoft Graph does not expose the custom sort order of tasks as displayed in the To-Do app. As a workaround, the `--ordering-source` option accepts a text file produced by the To-Do app's **"Share copy"** function, which preserves the user's custom task order.
+
+The file uses the following format:
+
+```
+📅 List Name
+
+◯ Task title
+   ◦ Incomplete subtask
+   ✔ Completed subtask
+◯ Another task ★
+```
+
+The CLI parses lines starting with `◯` to extract parent task titles (in order), stripping any trailing `★` (importance marker) and whitespace. Tasks from the API are then reordered to match:
+
+1. Tasks whose titles match an entry in the ordering source are sorted by their position in that file.
+2. Tasks not found in the ordering source are appended at the end in their original API order.
+
+Ordering is applied independently to the incomplete and completed groups (incomplete tasks still appear before completed tasks).
 
 ## Output Format
 

@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { getTaskLists, getTasks, type TodoTaskList } from "./graph.js";
+import { getTaskLists, getTasks, type TodoTaskList, type TodoTask } from "./graph.js";
 
 /**
  * Resolve a user-supplied identifier to exactly one task list.
@@ -49,11 +49,63 @@ async function resolveList(identifier: string): Promise<TodoTaskList> {
 }
 
 /**
+ * Parse a "Share copy" text file from the To-Do app and return an ordered
+ * list of task titles. The file uses ◯ for parent tasks, ◦/✔ for subtasks,
+ * and optionally appends ★ for important tasks.
+ */
+function parseOrderingSource(filePath: string): string[] {
+  const content = fs.readFileSync(filePath, "utf-8");
+  const titles: string[] = [];
+
+  for (const line of content.split(/\r?\n/)) {
+    // Match parent task lines: "◯ <title>" (possibly with trailing ★)
+    const match = line.match(/^◯\s+(.+)$/);
+    if (match) {
+      const title = match[1]
+        .replace(/\s*★\s*$/, "") // strip importance marker
+        .trimEnd();
+      titles.push(title);
+    }
+  }
+
+  return titles;
+}
+
+/**
+ * Sort tasks based on the order from an ordering source file.
+ * Tasks found in the source are ordered by their position there;
+ * tasks not found are appended at the end in their original order.
+ */
+function applyOrdering(tasks: TodoTask[], orderingSourcePath: string): TodoTask[] {
+  const orderedTitles = parseOrderingSource(orderingSourcePath);
+  const positionMap = new Map<string, number>();
+  for (let i = 0; i < orderedTitles.length; i++) {
+    positionMap.set(orderedTitles[i], i);
+  }
+
+  const matched: { task: TodoTask; pos: number }[] = [];
+  const unmatched: TodoTask[] = [];
+
+  for (const task of tasks) {
+    const pos = positionMap.get(task.title.trimEnd());
+    if (pos !== undefined) {
+      matched.push({ task, pos });
+    } else {
+      unmatched.push(task);
+    }
+  }
+
+  matched.sort((a, b) => a.pos - b.pos);
+  return [...matched.map((m) => m.task), ...unmatched];
+}
+
+/**
  * Export the tasks from a Microsoft To-Do list to a Markdown file.
  */
 export async function exportList(
   identifier: string,
-  outPath?: string
+  outPath?: string,
+  orderingSourcePath?: string
 ): Promise<void> {
   const list = await resolveList(identifier);
   const resolvedPath = outPath ?? `${list.displayName}.md`;
@@ -64,7 +116,15 @@ export async function exportList(
   // Group incomplete tasks first, then completed, preserving API order within each group
   const incomplete = tasks.filter((t) => t.status !== "completed");
   const completed = tasks.filter((t) => t.status === "completed");
-  const ordered = [...incomplete, ...completed];
+
+  // Apply ordering source if provided
+  const orderedIncomplete = orderingSourcePath
+    ? applyOrdering(incomplete, orderingSourcePath)
+    : incomplete;
+  const orderedCompleted = orderingSourcePath
+    ? applyOrdering(completed, orderingSourcePath)
+    : completed;
+  const ordered = [...orderedIncomplete, ...orderedCompleted];
 
   const lines: string[] = [];
   for (const t of ordered) {

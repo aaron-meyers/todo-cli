@@ -15,9 +15,10 @@ program
   .description("Export a Microsoft To-Do task list to Markdown")
   .requiredOption("--list <identifier>", "Task list ID or name (partial, case-insensitive)")
   .option("--out <path>", "Output Markdown file path (defaults to <list-name>.md)")
-  .action(async (opts: { list: string; out?: string }) => {
+  .option("--ordering-source <path>", "File from To-Do 'Share copy' to set task order")
+  .action(async (opts: { list: string; out?: string; orderingSource?: string }) => {
     try {
-      await exportList(opts.list, opts.out);
+      await exportList(opts.list, opts.out, opts.orderingSource);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`Error: ${message}`);
