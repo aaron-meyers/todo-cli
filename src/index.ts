@@ -13,8 +13,8 @@ program
 program
   .command("export")
   .description("Export a Microsoft To-Do task list to Markdown")
-  .requiredOption("--list <identifier>", "Task list ID or name (partial, case-insensitive)")
-  .option("--out <path>", "Output Markdown file path (defaults to <list-name>.md)")
+  .requiredOption("-l, --list <identifier>", "Task list ID or name (partial, case-insensitive)")
+  .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
   .option("--ordering-source <path>", "File from To-Do 'Share copy' to set task order")
   .action(async (opts: { list: string; out?: string; orderingSource?: string }) => {
     try {
