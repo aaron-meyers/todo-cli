@@ -199,6 +199,9 @@ export function renderMarkdown(
       const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
       lines.push(`    - ${subCheckbox} ${ci.displayName.trimEnd()}`);
     }
+    for (const lr of t.linkedResources) {
+      lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
+    }
     if (t.body) {
       const markdown = turndown.turndown(t.body);
       for (const line of markdown.split(/\n/)) {

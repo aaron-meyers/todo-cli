@@ -17,11 +17,18 @@ export interface RecurrencePattern {
   daysOfWeek?: string[];
 }
 
+export interface LinkedResource {
+  displayName: string;
+  webUrl: string;
+  applicationName: string;
+}
+
 export interface TodoTask {
   id: string;
   title: string;
   status: string; // "notStarted" | "inProgress" | "completed" | "waitingOnOthers" | "deferred"
   checklistItems: ChecklistItem[];
+  linkedResources: LinkedResource[];
   body: string;
   importance?: string; // "low" | "normal" | "high"
   createdDateTime?: string;
@@ -72,7 +79,7 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
   const client = createClient(token);
 
   const tasks: TodoTask[] = [];
-  let url: string | null | undefined = `/me/todo/lists/${listId}/tasks?$expand=checklistItems`;
+  let url: string | null | undefined = `/me/todo/lists/${listId}/tasks?$expand=checklistItems,linkedResources`;
 
   while (url) {
     const response = await client.api(url).get();
@@ -83,11 +90,19 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
           isChecked: ci.isChecked,
         })
       );
+      const linkedResources: LinkedResource[] = (item.linkedResources ?? [])
+        .filter((lr: { webUrl?: string }) => lr.webUrl)
+        .map((lr: { displayName: string; webUrl: string; applicationName: string }) => ({
+          displayName: lr.displayName,
+          webUrl: lr.webUrl,
+          applicationName: lr.applicationName,
+        }));
       tasks.push({
         id: item.id,
         title: item.title,
         status: item.status,
         checklistItems,
+        linkedResources,
         body: item.body?.content?.trim() ?? "",
         importance: item.importance ?? undefined,
         createdDateTime: item.createdDateTime ?? undefined,

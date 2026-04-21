@@ -32,8 +32,8 @@ const mockedGetTasks = vi.mocked(getTasks);
 // Helpers
 // ---------------------------------------------------------------------------
 
-function task(title: string, status = "notStarted", checklistItems: TodoTask["checklistItems"] = [], body = ""): TodoTask {
-  return { id: `id-${title}`, title, status, checklistItems, body };
+function task(title: string, status = "notStarted", checklistItems: TodoTask["checklistItems"] = [], body = "", linkedResources: TodoTask["linkedResources"] = []): TodoTask {
+  return { id: `id-${title}`, title, status, checklistItems, linkedResources, body };
 }
 
 const sampleLists: TodoTaskList[] = [
@@ -343,6 +343,48 @@ describe("renderMarkdown", () => {
     expect(lines).toEqual([
       "- [ ] Task",
       "    - This is **bold** and _italic_",
+    ]);
+  });
+
+  it("renders linked resources as indented Markdown links", () => {
+    const t = task("Task", "notStarted", [], "", [
+      { displayName: "Important Email", webUrl: "https://outlook.office.com/mail/read/123", applicationName: "Outlook" },
+    ]);
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [Important Email](https://outlook.office.com/mail/read/123) (Outlook)",
+    ]);
+  });
+
+  it("renders linked resources after subtasks but before notes", () => {
+    const t = task("Task", "notStarted", [
+      { displayName: "Subtask", isChecked: false },
+    ], "<p>A note</p>", [
+      { displayName: "Link", webUrl: "https://example.com", applicationName: "Teams" },
+    ]);
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [ ] Subtask",
+      "    - [Link](https://example.com) (Teams)",
+      "    - A note",
+    ]);
+  });
+
+  it("renders multiple linked resources", () => {
+    const t = task("Task", "notStarted", [], "", [
+      { displayName: "Email", webUrl: "https://outlook.com/1", applicationName: "Outlook" },
+      { displayName: "Note", webUrl: "https://onenote.com/2", applicationName: "OneNote" },
+    ]);
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [Email](https://outlook.com/1) (Outlook)",
+      "    - [Note](https://onenote.com/2) (OneNote)",
     ]);
   });
 });
