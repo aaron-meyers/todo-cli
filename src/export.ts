@@ -2,6 +2,13 @@ import * as fs from "node:fs";
 import { getTaskLists, getTasks, type TodoTaskList, type TodoTask } from "./graph.js";
 
 /**
+ * Format task lists for display, one per line.
+ */
+export function formatListOutput(lists: TodoTaskList[]): string {
+  return lists.map((l) => `${l.displayName} (${l.id})`).join("\n");
+}
+
+/**
  * Resolve a user-supplied identifier to exactly one task list.
  *
  * Resolution order:

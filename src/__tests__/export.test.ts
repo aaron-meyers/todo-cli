@@ -18,6 +18,7 @@ import {
   parseOrderingSource,
   applyOrdering,
   renderMarkdown,
+  formatListOutput,
   exportList,
 } from "../export.js";
 
@@ -37,6 +38,28 @@ const sampleLists: TodoTaskList[] = [
   { id: "list-2", displayName: "Daily" },
   { id: "list-3", displayName: "Daily Standup" },
 ];
+
+// ---------------------------------------------------------------------------
+// formatListOutput
+// ---------------------------------------------------------------------------
+
+describe("formatListOutput", () => {
+  it("formats lists with name and ID", () => {
+    const output = formatListOutput(sampleLists);
+    expect(output).toBe(
+      "Shopping (list-1)\nDaily (list-2)\nDaily Standup (list-3)"
+    );
+  });
+
+  it("returns empty string for no lists", () => {
+    expect(formatListOutput([])).toBe("");
+  });
+
+  it("handles a single list", () => {
+    const output = formatListOutput([{ id: "abc", displayName: "My List" }]);
+    expect(output).toBe("My List (abc)");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // resolveList

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { exportList } from "./export.js";
+import { exportList, formatListOutput } from "./export.js";
+import { getTaskLists } from "./graph.js";
 
 const program = new Command();
 
@@ -19,6 +20,20 @@ program
   .action(async (opts: { list: string; out?: string; orderingSource?: string }) => {
     try {
       await exportList(opts.list, opts.out, opts.orderingSource);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Error: ${message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("list")
+  .description("List all Microsoft To-Do task lists")
+  .action(async () => {
+    try {
+      const lists = await getTaskLists();
+      console.error(formatListOutput(lists));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`Error: ${message}`);
