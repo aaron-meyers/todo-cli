@@ -16,10 +16,11 @@ program
   .description("Export a Microsoft To-Do task list to Markdown")
   .requiredOption("-l, --list <identifier>", "Task list ID or name (partial, case-insensitive)")
   .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
+  .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("--ordering-source <path>", "File from To-Do 'Share copy' to set task order")
-  .action(async (opts: { list: string; out?: string; orderingSource?: string }) => {
+  .action(async (opts: { list: string; out?: string; metadata?: boolean; orderingSource?: string }) => {
     try {
-      await exportList(opts.list, opts.out, opts.orderingSource);
+      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`Error: ${message}`);

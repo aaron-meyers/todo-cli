@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import TurndownService from "turndown";
-import { getTaskLists, getTasks, type TodoTaskList, type TodoTask } from "./graph.js";
+import { getTaskLists, getTasks, type TodoTaskList, type TodoTask, type RecurrencePattern } from "./graph.js";
 
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
 
@@ -111,6 +111,57 @@ export function applyOrdering(tasks: TodoTask[], orderedTitles: string[]): TodoT
   return [...matched.map((m) => m.task), ...unmatched];
 }
 
+/** Extract just the date portion (YYYY-MM-DD) from an ISO datetime string. */
+export function toDateOnly(dateTime: string): string {
+  return dateTime.slice(0, 10);
+}
+
+/** Convert a Graph API recurrence pattern to an Obsidian Tasks recurrence string. */
+export function formatRecurrence(pattern: RecurrencePattern): string {
+  const { type, interval, daysOfWeek } = pattern;
+
+  if (type === "daily") {
+    return interval === 1 ? "every day" : `every ${interval} days`;
+  }
+  if (type === "weekly") {
+    if (daysOfWeek && daysOfWeek.length > 0) {
+      const days = daysOfWeek.join(", ");
+      return interval === 1 ? `every week on ${days}` : `every ${interval} weeks on ${days}`;
+    }
+    return interval === 1 ? "every week" : `every ${interval} weeks`;
+  }
+  if (type === "absoluteMonthly") {
+    return interval === 1 ? "every month" : `every ${interval} months`;
+  }
+  if (type === "absoluteYearly") {
+    return interval === 1 ? "every year" : `every ${interval} years`;
+  }
+  return `every ${interval} ${type}`;
+}
+
+/** Build the Obsidian Tasks emoji metadata suffix for a task. */
+export function formatMetadata(task: TodoTask): string {
+  const parts: string[] = [];
+
+  if (task.createdDateTime) {
+    parts.push(`➕ ${toDateOnly(task.createdDateTime)}`);
+  }
+  if (task.dueDateTime) {
+    parts.push(`📅 ${toDateOnly(task.dueDateTime)}`);
+  }
+  if (task.reminderDateTime) {
+    parts.push(`⏳ ${toDateOnly(task.reminderDateTime)}`);
+  }
+  if (task.recurrence) {
+    parts.push(`🔁 ${formatRecurrence(task.recurrence)}`);
+  }
+  if (task.completedDateTime) {
+    parts.push(`✅ ${toDateOnly(task.completedDateTime)}`);
+  }
+
+  return parts.join(" ");
+}
+
 /**
  * Render tasks to Markdown checkbox lines.
  * Incomplete tasks appear first, followed by completed tasks.
@@ -118,7 +169,8 @@ export function applyOrdering(tasks: TodoTask[], orderedTitles: string[]): TodoT
  */
 export function renderMarkdown(
   tasks: TodoTask[],
-  orderingSource?: string
+  orderingSource?: string,
+  metadata = false
 ): string {
   const incomplete = tasks.filter((t) => t.status !== "completed");
   const completed = tasks.filter((t) => t.status === "completed");
@@ -137,7 +189,9 @@ export function renderMarkdown(
   const lines: string[] = [];
   for (const t of ordered) {
     const checkbox = t.status === "completed" ? "[x]" : "[ ]";
-    lines.push(`- ${checkbox} ${t.title.trimEnd()}`);
+    const metaStr = metadata ? formatMetadata(t) : "";
+    const meta = metaStr ? ` ${metaStr}` : "";
+    lines.push(`- ${checkbox} ${t.title.trimEnd()}${meta}`);
     for (const ci of t.checklistItems) {
       const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
       lines.push(`    - ${subCheckbox} ${ci.displayName.trimEnd()}`);
@@ -162,7 +216,8 @@ export function renderMarkdown(
 export async function exportList(
   identifier: string,
   outPath?: string,
-  orderingSourcePath?: string
+  orderingSourcePath?: string,
+  metadata = false
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
@@ -175,7 +230,7 @@ export async function exportList(
     ? fs.readFileSync(orderingSourcePath, "utf-8")
     : undefined;
 
-  const markdown = renderMarkdown(tasks, orderingSource);
+  const markdown = renderMarkdown(tasks, orderingSource, metadata);
   fs.writeFileSync(resolvedPath, markdown, "utf-8");
 
   console.error(

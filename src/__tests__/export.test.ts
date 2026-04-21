@@ -19,6 +19,9 @@ import {
   applyOrdering,
   renderMarkdown,
   formatListOutput,
+  formatMetadata,
+  formatRecurrence,
+  toDateOnly,
   exportList,
 } from "../export.js";
 
@@ -333,7 +336,123 @@ describe("renderMarkdown", () => {
 });
 
 // ---------------------------------------------------------------------------
-// exportList (integration with mocked Graph API)
+// toDateOnly
+// ---------------------------------------------------------------------------
+
+describe("toDateOnly", () => {
+  it("extracts date from ISO datetime", () => {
+    expect(toDateOnly("2024-04-21T14:30:00Z")).toBe("2024-04-21");
+  });
+
+  it("extracts date from datetime with fractional seconds", () => {
+    expect(toDateOnly("2024-04-21T15:30:00.0000000")).toBe("2024-04-21");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatRecurrence
+// ---------------------------------------------------------------------------
+
+describe("formatRecurrence", () => {
+  it("formats daily recurrence", () => {
+    expect(formatRecurrence({ type: "daily", interval: 1 })).toBe("every day");
+  });
+
+  it("formats daily with interval", () => {
+    expect(formatRecurrence({ type: "daily", interval: 3 })).toBe("every 3 days");
+  });
+
+  it("formats weekly recurrence", () => {
+    expect(formatRecurrence({ type: "weekly", interval: 1 })).toBe("every week");
+  });
+
+  it("formats weekly with interval", () => {
+    expect(formatRecurrence({ type: "weekly", interval: 2 })).toBe("every 2 weeks");
+  });
+
+  it("formats weekly with days", () => {
+    expect(formatRecurrence({ type: "weekly", interval: 1, daysOfWeek: ["monday", "wednesday"] }))
+      .toBe("every week on monday, wednesday");
+  });
+
+  it("formats monthly recurrence", () => {
+    expect(formatRecurrence({ type: "absoluteMonthly", interval: 1 })).toBe("every month");
+  });
+
+  it("formats monthly with interval", () => {
+    expect(formatRecurrence({ type: "absoluteMonthly", interval: 3 })).toBe("every 3 months");
+  });
+
+  it("formats yearly recurrence", () => {
+    expect(formatRecurrence({ type: "absoluteYearly", interval: 1 })).toBe("every year");
+  });
+
+  it("handles unknown type gracefully", () => {
+    expect(formatRecurrence({ type: "relativeMonthly", interval: 2 })).toBe("every 2 relativeMonthly");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatMetadata
+// ---------------------------------------------------------------------------
+
+describe("formatMetadata", () => {
+  it("formats all metadata fields", () => {
+    const t: TodoTask = {
+      ...task("Test"),
+      createdDateTime: "2024-04-10T12:00:00Z",
+      dueDateTime: "2024-04-25T00:00:00.0000000",
+      reminderDateTime: "2024-04-24T09:00:00.0000000",
+      completedDateTime: "2024-04-20T15:00:00.0000000",
+      recurrence: { type: "weekly", interval: 1 },
+    };
+    expect(formatMetadata(t)).toBe(
+      "➕ 2024-04-10 📅 2024-04-25 ⏳ 2024-04-24 🔁 every week ✅ 2024-04-20"
+    );
+  });
+
+  it("returns empty string when no metadata", () => {
+    expect(formatMetadata(task("Test"))).toBe("");
+  });
+
+  it("includes only present fields", () => {
+    const t: TodoTask = {
+      ...task("Test"),
+      dueDateTime: "2024-04-25T00:00:00.0000000",
+    };
+    expect(formatMetadata(t)).toBe("📅 2024-04-25");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderMarkdown with metadata
+// ---------------------------------------------------------------------------
+
+describe("renderMarkdown with metadata", () => {
+  it("includes metadata inline when enabled", () => {
+    const t: TodoTask = {
+      ...task("Buy milk"),
+      createdDateTime: "2024-04-10T12:00:00Z",
+      dueDateTime: "2024-04-25T00:00:00.0000000",
+    };
+    const md = renderMarkdown([t], undefined, true);
+    expect(md).toBe("- [ ] Buy milk ➕ 2024-04-10 📅 2024-04-25\n");
+  });
+
+  it("omits metadata when disabled", () => {
+    const t: TodoTask = {
+      ...task("Buy milk"),
+      createdDateTime: "2024-04-10T12:00:00Z",
+    };
+    const md = renderMarkdown([t], undefined, false);
+    expect(md).toBe("- [ ] Buy milk\n");
+  });
+
+  it("does not add trailing space when task has no metadata", () => {
+    const md = renderMarkdown([task("Simple")], undefined, true);
+    expect(md).toBe("- [ ] Simple\n");
+  });
+});
 // ---------------------------------------------------------------------------
 
 describe("exportList", () => {

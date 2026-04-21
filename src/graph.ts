@@ -11,12 +11,23 @@ export interface ChecklistItem {
   isChecked: boolean;
 }
 
+export interface RecurrencePattern {
+  type: string; // "daily" | "weekly" | "absoluteMonthly" | "absoluteYearly" | ...
+  interval: number;
+  daysOfWeek?: string[];
+}
+
 export interface TodoTask {
   id: string;
   title: string;
   status: string; // "notStarted" | "inProgress" | "completed" | "waitingOnOthers" | "deferred"
   checklistItems: ChecklistItem[];
   body: string;
+  createdDateTime?: string;
+  completedDateTime?: string;
+  dueDateTime?: string;
+  reminderDateTime?: string;
+  recurrence?: RecurrencePattern;
 }
 
 function createClient(accessToken: string): Client {
@@ -77,6 +88,17 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
         status: item.status,
         checklistItems,
         body: item.body?.content?.trim() ?? "",
+        createdDateTime: item.createdDateTime ?? undefined,
+        completedDateTime: item.completedDateTime?.dateTime ?? undefined,
+        dueDateTime: item.dueDateTime?.dateTime ?? undefined,
+        reminderDateTime: item.reminderDateTime?.dateTime ?? undefined,
+        recurrence: item.recurrence?.pattern
+          ? {
+              type: item.recurrence.pattern.type,
+              interval: item.recurrence.pattern.interval,
+              daysOfWeek: item.recurrence.pattern.daysOfWeek,
+            }
+          : undefined,
       });
     }
     url = response["@odata.nextLink"] ?? null;
