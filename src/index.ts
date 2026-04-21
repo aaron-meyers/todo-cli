@@ -30,10 +30,11 @@ program
 program
   .command("list")
   .description("List all Microsoft To-Do task lists")
-  .action(async () => {
+  .option("-v, --verbose", "Show list IDs")
+  .action(async (opts: { verbose?: boolean }) => {
     try {
       const lists = await getTaskLists();
-      console.error(formatListOutput(lists));
+      console.error(formatListOutput(lists, opts.verbose));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`Error: ${message}`);

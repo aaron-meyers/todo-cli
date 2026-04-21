@@ -44,8 +44,13 @@ const sampleLists: TodoTaskList[] = [
 // ---------------------------------------------------------------------------
 
 describe("formatListOutput", () => {
-  it("formats lists with name and ID", () => {
+  it("formats lists with names only by default", () => {
     const output = formatListOutput(sampleLists);
+    expect(output).toBe("Shopping\nDaily\nDaily Standup");
+  });
+
+  it("includes IDs when verbose is true", () => {
+    const output = formatListOutput(sampleLists, true);
     expect(output).toBe(
       "Shopping (list-1)\nDaily (list-2)\nDaily Standup (list-3)"
     );
@@ -57,7 +62,7 @@ describe("formatListOutput", () => {
 
   it("handles a single list", () => {
     const output = formatListOutput([{ id: "abc", displayName: "My List" }]);
-    expect(output).toBe("My List (abc)");
+    expect(output).toBe("My List");
   });
 });
 

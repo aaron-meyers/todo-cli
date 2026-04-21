@@ -3,9 +3,12 @@ import { getTaskLists, getTasks, type TodoTaskList, type TodoTask } from "./grap
 
 /**
  * Format task lists for display, one per line.
+ * When verbose is true, includes the list ID in parentheses.
  */
-export function formatListOutput(lists: TodoTaskList[]): string {
-  return lists.map((l) => `${l.displayName} (${l.id})`).join("\n");
+export function formatListOutput(lists: TodoTaskList[], verbose = false): string {
+  return lists
+    .map((l) => (verbose ? `${l.displayName} (${l.id})` : l.displayName))
+    .join("\n");
 }
 
 /**
