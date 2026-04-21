@@ -2,7 +2,7 @@
 
 ## Description
 
-`todo` is a command-line tool that interacts with **Microsoft To-Do** via the Microsoft Graph API. Its primary function is exporting the tasks from a specified task list into a Markdown file with checkbox syntax.
+`todo` is a command-line tool that interacts with **Microsoft To-Do** via the Microsoft Graph API. It can list all task lists and export the tasks from a specified list into a Markdown file with checkbox syntax.
 
 ## Prerequisites
 
@@ -20,18 +20,33 @@ On first run the CLI performs the **OAuth 2.0 device-code flow**:
 
 Subsequent runs reuse the cached token (or silently refresh it) until it expires. Delete the cache file to force re-authentication.
 
-## Usage
+## Commands
+
+### `todo list`
 
 ```
-todo export --list <list-identifier> [--out <markdown-path>] [--ordering-source <file>]
+todo list [--verbose]
 ```
 
-### Parameters
+Print all task lists to stderr, one per line.
+
+| Parameter | Required | Description |
+|---|---|---|
+| `-v, --verbose` | No | Include list IDs in the output. |
+
+### `todo export`
+
+```
+todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--ordering-source <file>]
+```
+
+#### Parameters
 
 | Parameter | Required | Description |
 |---|---|---|
 | `--list <identifier>` | Yes | Identifies the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
+| `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `--ordering-source <file>` | No | Path to a text file produced by the To-Do app's "Share copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
 
 ### List Resolution
@@ -72,13 +87,21 @@ Ordering is applied independently to the incomplete and completed groups (incomp
 
 The generated Markdown file contains one line per task. Incomplete tasks appear first, followed by completed tasks, preserving the API return order within each group.
 
-If a task has subtasks (checklist items), they appear as indented items immediately below the parent task:
+Each task is rendered as a checkbox line. Below the task line, indented child items appear in this order:
+
+1. **Subtasks** (checklist items) — indented checkboxes.
+2. **Linked resources** — indented Markdown links in the format `- [displayName](webUrl) (applicationName)`.
+3. **Notes** — the task body (HTML) converted to Markdown via Turndown, with each line rendered as an indented bullet item.
+
+**Linked resource inlining:** When a task has exactly one linked resource whose `displayName` matches the task title, the link is inlined in the task title (e.g., `- [ ] [Task title](url)`) instead of appearing as a separate indented item.
 
 ```markdown
 - [ ] Buy groceries
     - [x] Milk
     - [ ] Eggs
-- [x] Send report
+    - [Grocery list](https://example.com) (OneNote)
+    - Check the pantry first
+- [x] [Send report](https://outlook.office.com/mail/read/123)
 - [ ] Book flight
 ```
 
@@ -86,6 +109,28 @@ If a task has subtasks (checklist items), they appear as indented items immediat
 * `- [x]` – task/subtask is **completed**.
 
 The file ends with a trailing newline.
+
+## Metadata
+
+When `--metadata` is enabled, task metadata is appended inline after the task title (or linked title) using [Obsidian Tasks](https://publish.obsidian.md/tasks/) emoji format:
+
+| Emoji | Field | Source (Graph API) |
+|---|---|---|
+| `⏫` | High priority | `importance === "high"` |
+| `➕` | Created date | `createdDateTime` |
+| `📅` | Due date | `dueDateTime` |
+| `⏳` | Scheduled date | `reminderDateTime` (date only, time ignored) |
+| `🔁` | Recurrence | `recurrence.pattern` (e.g., "every day", "every week") |
+| `✅` | Completion date | `completedDateTime` |
+
+Example with metadata:
+
+```markdown
+- [ ] Buy groceries ⏫ ➕ 2024-04-10 📅 2024-04-25
+- [x] Send report ➕ 2024-04-08 ✅ 2024-04-20
+```
+
+Only present fields are included; tasks with no metadata have no emoji suffix.
 
 ## Exit Codes
 
@@ -97,6 +142,12 @@ The file ends with a trailing newline.
 ## Examples
 
 ```bash
+# List all task lists
+todo list
+
+# List with IDs
+todo list --verbose
+
 # Export by exact list name
 todo export --list "Shopping" --out shopping.md
 
@@ -105,4 +156,10 @@ todo export --list "shop" --out shopping.md
 
 # Export by list ID
 todo export --list "AQMkADAwATMw..." --out work.md
+
+# Export with metadata
+todo export --list "Shopping" -m
+
+# Export with ordering
+todo export --list "Daily" --ordering-source ~/To-Do/Daily-share.md
 ```

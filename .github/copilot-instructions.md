@@ -16,10 +16,10 @@ No linter is configured.
 
 This is a CLI tool that exports Microsoft To-Do task lists to Markdown via the Microsoft Graph API.
 
-- **`src/index.ts`** — CLI entry point using Commander. Defines the `todo export` command and delegates to `exportList`.
+- **`src/index.ts`** — CLI entry point using Commander. Defines `todo list` and `todo export` commands.
 - **`src/auth.ts`** — OAuth 2.0 device-code flow via MSAL. Caches tokens at `~/.todo-cli/token-cache.json`.
-- **`src/graph.ts`** — Microsoft Graph API client. Defines the `TodoTask`, `TodoTaskList`, and `ChecklistItem` interfaces. Uses the `/lists/delta` endpoint (workaround for a Graph API bug that omits some lists).
-- **`src/export.ts`** — Core logic: list resolution, ordering-source parsing, Markdown rendering, and file writing. All pure-logic functions are exported individually for testing.
+- **`src/graph.ts`** — Microsoft Graph API client. Defines the `TodoTask`, `TodoTaskList`, `ChecklistItem`, `LinkedResource`, and `RecurrencePattern` interfaces. Uses the `/lists/delta` endpoint (workaround for a Graph API bug that omits some lists). Fetches tasks with `$expand=checklistItems,linkedResources`.
+- **`src/export.ts`** — Core logic: list resolution, formatting, ordering-source parsing, metadata formatting, Markdown rendering (including HTML-to-Markdown conversion via Turndown), and file writing. All pure-logic functions are exported individually for testing.
 
 Data flows in one direction: `index → export → graph → auth`.
 
@@ -29,3 +29,4 @@ Data flows in one direction: `index → export → graph → auth`.
 - **User-facing messages go to `stderr`** (`console.error`), keeping `stdout` clean for potential piped output.
 - **Tests mock `graph.ts` and `node:fs`** using `vi.mock()` at the top of the test file, so the export logic can be tested without network calls or filesystem side effects.
 - **List resolution** follows a strict priority: exact ID → exact name (case-insensitive) → partial name (case-insensitive substring). See `spec.md` for the full specification.
+- **Keep `README.md`, `spec.md`, and this file up to date** when adding or changing commands, options, output format, or architecture.

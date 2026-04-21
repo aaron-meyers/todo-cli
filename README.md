@@ -5,7 +5,11 @@ A command-line tool that exports [Microsoft To-Do](https://to-do.microsoft.com/)
 ## Features
 
 - Export any task list to a Markdown file with checkbox syntax
+- List all available task lists
 - Subtasks (checklist items) rendered as indented items
+- Task notes (HTML body) converted to Markdown via [Turndown](https://github.com/mixmark-io/turndown)
+- Linked resources (Outlook emails, Teams messages, etc.) rendered as Markdown links
+- Optional task metadata in [Obsidian Tasks](https://publish.obsidian.md/tasks/) emoji format (dates, recurrence, priority)
 - Flexible list lookup — match by ID, exact name, or partial name (case-insensitive)
 - OAuth 2.0 device-code flow with automatic token caching
 
@@ -25,19 +29,33 @@ npm link
 
 ## Usage
 
+### `todo list`
+
 ```
-todo export -l <list-identifier> [-o <markdown-path>] [--ordering-source <file>]
+todo list [-v, --verbose]
+```
+
+Print all task lists. Use `--verbose` to include list IDs.
+
+### `todo export`
+
+```
+todo export -l <list-identifier> [-o <markdown-path>] [-m] [--ordering-source <file>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
 | `-l, --list <identifier>` | Yes | List ID or name (partial, case-insensitive) |
 | `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`) |
+| `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `--ordering-source <file>` | No | Text file from To-Do's "Share copy" to set task order |
 
 ### Examples
 
 ```bash
+# List all task lists
+todo list
+
 # Export by list name
 todo export -l "Shopping"
 
@@ -46,6 +64,9 @@ todo export -l "shop" -o shopping.md
 
 # Export by list ID
 todo export --list "AQMkADAwATMw..." --out work.md
+
+# Export with metadata (dates, recurrence, priority)
+todo export -l "Shopping" -m
 
 # Export with ordering from a To-Do "Share copy" file
 todo export -l Daily --ordering-source ~/To-Do/Daily-share.md
@@ -61,11 +82,19 @@ On first run you'll be prompted to sign in via the device-code flow — open the
 - [ ] Buy groceries
     - [x] Milk
     - [ ] Eggs
-- [x] Send report
-- [ ] Book flight
+    - [Grocery list](https://example.com) (OneNote)
+    - Check the pantry first
+- [x] [Send report](https://outlook.office.com/mail/read/123)
+- [ ] Book flight ⏫ 📅 2024-05-01
 ```
 
-Incomplete tasks appear first, followed by completed tasks.
+Incomplete tasks appear first, followed by completed tasks. For each task:
+
+1. Subtasks (checklist items) appear as indented checkbox items
+2. Linked resources appear as indented Markdown links (or inlined in the title when the resource name matches the task title)
+3. Notes appear as indented bullet items (HTML converted to Markdown)
+
+When `--metadata` is enabled, task metadata is appended inline using Obsidian Tasks emoji format: `⏫` priority, `➕` created, `📅` due, `⏳` scheduled, `🔁` recurrence, `✅` completed.
 
 ## Development
 
