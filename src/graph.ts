@@ -16,6 +16,7 @@ export interface TodoTask {
   title: string;
   status: string; // "notStarted" | "inProgress" | "completed" | "waitingOnOthers" | "deferred"
   checklistItems: ChecklistItem[];
+  body: string;
 }
 
 function createClient(accessToken: string): Client {
@@ -70,7 +71,13 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
           isChecked: ci.isChecked,
         })
       );
-      tasks.push({ id: item.id, title: item.title, status: item.status, checklistItems });
+      tasks.push({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        checklistItems,
+        body: item.body?.content?.trim() ?? "",
+      });
     }
     url = response["@odata.nextLink"] ?? null;
   }

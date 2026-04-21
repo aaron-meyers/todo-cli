@@ -1,5 +1,8 @@
 import * as fs from "node:fs";
+import TurndownService from "turndown";
 import { getTaskLists, getTasks, type TodoTaskList, type TodoTask } from "./graph.js";
+
+const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
 
 /**
  * Format task lists for display, one per line.
@@ -138,6 +141,15 @@ export function renderMarkdown(
     for (const ci of t.checklistItems) {
       const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
       lines.push(`    - ${subCheckbox} ${ci.displayName.trimEnd()}`);
+    }
+    if (t.body) {
+      const markdown = turndown.turndown(t.body);
+      for (const paragraph of markdown.split(/\n\n+/)) {
+        const trimmed = paragraph.trim();
+        if (trimmed) {
+          lines.push(`    - ${trimmed}`);
+        }
+      }
     }
   }
 

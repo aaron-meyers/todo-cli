@@ -29,8 +29,8 @@ const mockedGetTasks = vi.mocked(getTasks);
 // Helpers
 // ---------------------------------------------------------------------------
 
-function task(title: string, status = "notStarted", checklistItems: TodoTask["checklistItems"] = []): TodoTask {
-  return { id: `id-${title}`, title, status, checklistItems };
+function task(title: string, status = "notStarted", checklistItems: TodoTask["checklistItems"] = [], body = ""): TodoTask {
+  return { id: `id-${title}`, title, status, checklistItems, body };
 }
 
 const sampleLists: TodoTaskList[] = [
@@ -273,6 +273,62 @@ describe("renderMarkdown", () => {
   it("ends with trailing newline", () => {
     const md = renderMarkdown([task("A")]);
     expect(md.endsWith("\n")).toBe(true);
+  });
+
+  it("renders notes as indented bullet items", () => {
+    const t = task("Task", "notStarted", [], "<p>Remember to check twice</p>");
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - Remember to check twice",
+    ]);
+  });
+
+  it("renders multi-paragraph notes as separate bullets", () => {
+    const t = task("Task", "notStarted", [], "<p>First paragraph</p><p>Second paragraph</p>");
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - First paragraph",
+      "    - Second paragraph",
+    ]);
+  });
+
+  it("places notes after subtasks", () => {
+    const t = task("Task", "notStarted", [
+      { displayName: "Subtask", isChecked: false },
+    ], "<p>A note</p>");
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [ ] Subtask",
+      "    - A note",
+    ]);
+  });
+
+  it("skips empty body", () => {
+    const t = task("Task", "notStarted", [], "");
+    const md = renderMarkdown([t]);
+    expect(md).toBe("- [ ] Task\n");
+  });
+
+  it("skips whitespace-only body", () => {
+    const t = task("Task", "notStarted", [], "   \n\n  ");
+    const md = renderMarkdown([t]);
+    expect(md).toBe("- [ ] Task\n");
+  });
+
+  it("converts HTML bold and italic in notes", () => {
+    const t = task("Task", "notStarted", [], "<p>This is <b>bold</b> and <i>italic</i></p>");
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - This is **bold** and _italic_",
+    ]);
   });
 });
 
