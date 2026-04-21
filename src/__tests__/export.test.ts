@@ -387,6 +387,51 @@ describe("renderMarkdown", () => {
       "    - [Note](https://onenote.com/2) (OneNote)",
     ]);
   });
+
+  it("inlines link in title when single linked resource matches task title", () => {
+    const t = task("Review PR", "notStarted", [], "", [
+      { displayName: "Review PR", webUrl: "https://github.com/pr/1", applicationName: "GitHub" },
+    ]);
+    const md = renderMarkdown([t]);
+    expect(md).toBe("- [ ] [Review PR](https://github.com/pr/1)\n");
+  });
+
+  it("inlines link with metadata", () => {
+    const t: TodoTask = {
+      ...task("Review PR", "notStarted", [], "", [
+        { displayName: "Review PR", webUrl: "https://github.com/pr/1", applicationName: "GitHub" },
+      ]),
+      dueDateTime: "2024-04-25T00:00:00.0000000",
+    };
+    const md = renderMarkdown([t], undefined, true);
+    expect(md).toBe("- [ ] [Review PR](https://github.com/pr/1) 📅 2024-04-25\n");
+  });
+
+  it("does not inline when displayName differs from title", () => {
+    const t = task("My Task", "notStarted", [], "", [
+      { displayName: "Different Name", webUrl: "https://example.com", applicationName: "App" },
+    ]);
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] My Task",
+      "    - [Different Name](https://example.com) (App)",
+    ]);
+  });
+
+  it("does not inline when there are multiple linked resources even if one matches", () => {
+    const t = task("Task", "notStarted", [], "", [
+      { displayName: "Task", webUrl: "https://example.com/1", applicationName: "App1" },
+      { displayName: "Other", webUrl: "https://example.com/2", applicationName: "App2" },
+    ]);
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [Task](https://example.com/1) (App1)",
+      "    - [Other](https://example.com/2) (App2)",
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------

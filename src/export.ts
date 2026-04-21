@@ -194,13 +194,27 @@ export function renderMarkdown(
     const checkbox = t.status === "completed" ? "[x]" : "[ ]";
     const metaStr = metadata ? formatMetadata(t) : "";
     const meta = metaStr ? ` ${metaStr}` : "";
-    lines.push(`- ${checkbox} ${t.title.trimEnd()}${meta}`);
+    const titleText = t.title.trimEnd();
+
+    // Inline the link in the title when there's exactly one linked resource
+    // whose displayName matches the task title
+    const inlineLink =
+      t.linkedResources.length === 1 &&
+      t.linkedResources[0].displayName === titleText;
+
+    if (inlineLink) {
+      lines.push(`- ${checkbox} [${titleText}](${t.linkedResources[0].webUrl})${meta}`);
+    } else {
+      lines.push(`- ${checkbox} ${titleText}${meta}`);
+    }
     for (const ci of t.checklistItems) {
       const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
       lines.push(`    - ${subCheckbox} ${ci.displayName.trimEnd()}`);
     }
-    for (const lr of t.linkedResources) {
-      lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
+    if (!inlineLink) {
+      for (const lr of t.linkedResources) {
+        lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
+      }
     }
     if (t.body) {
       const markdown = turndown.turndown(t.body);
