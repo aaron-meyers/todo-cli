@@ -434,6 +434,24 @@ describe("formatMetadata", () => {
     };
     expect(formatMetadata(t)).toBe("📅 2024-04-25");
   });
+
+  it("includes high priority emoji", () => {
+    const t: TodoTask = {
+      ...task("Test"),
+      importance: "high",
+      dueDateTime: "2024-04-25T00:00:00.0000000",
+    };
+    expect(formatMetadata(t)).toBe("⏫ 📅 2024-04-25");
+  });
+
+  it("omits priority for normal importance", () => {
+    const t: TodoTask = {
+      ...task("Test"),
+      importance: "normal",
+      dueDateTime: "2024-04-25T00:00:00.0000000",
+    };
+    expect(formatMetadata(t)).toBe("📅 2024-04-25");
+  });
 });
 
 // ---------------------------------------------------------------------------

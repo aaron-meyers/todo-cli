@@ -23,6 +23,7 @@ export interface TodoTask {
   status: string; // "notStarted" | "inProgress" | "completed" | "waitingOnOthers" | "deferred"
   checklistItems: ChecklistItem[];
   body: string;
+  importance?: string; // "low" | "normal" | "high"
   createdDateTime?: string;
   completedDateTime?: string;
   dueDateTime?: string;
@@ -88,6 +89,7 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
         status: item.status,
         checklistItems,
         body: item.body?.content?.trim() ?? "",
+        importance: item.importance ?? undefined,
         createdDateTime: item.createdDateTime ?? undefined,
         completedDateTime: item.completedDateTime?.dateTime ?? undefined,
         dueDateTime: item.dueDateTime?.dateTime ?? undefined,

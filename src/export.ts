@@ -143,6 +143,9 @@ export function formatRecurrence(pattern: RecurrencePattern): string {
 export function formatMetadata(task: TodoTask): string {
   const parts: string[] = [];
 
+  if (task.importance === "high") {
+    parts.push("⏫");
+  }
   if (task.createdDateTime) {
     parts.push(`➕ ${toDateOnly(task.createdDateTime)}`);
   }
