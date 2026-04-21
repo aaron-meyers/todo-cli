@@ -299,6 +299,18 @@ describe("renderMarkdown", () => {
     ]);
   });
 
+  it("renders notes with line breaks as separate bullets", () => {
+    const t = task("Task", "notStarted", [], "<p>Line 1<br>Line 2<br>Line 3</p>");
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - Line 1",
+      "    - Line 2",
+      "    - Line 3",
+    ]);
+  });
+
   it("places notes after subtasks", () => {
     const t = task("Task", "notStarted", [
       { displayName: "Subtask", isChecked: false },

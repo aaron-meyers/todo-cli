@@ -198,8 +198,8 @@ export function renderMarkdown(
     }
     if (t.body) {
       const markdown = turndown.turndown(t.body);
-      for (const paragraph of markdown.split(/\n\n+/)) {
-        const trimmed = paragraph.trim();
+      for (const line of markdown.split(/\n/)) {
+        const trimmed = line.trim();
         if (trimmed) {
           lines.push(`    - ${trimmed}`);
         }
