@@ -721,4 +721,21 @@ describe("exportList", () => {
 
     expect(mockedGetTaskAttachments).not.toHaveBeenCalled();
   });
+
+  it("skips download when attachment file already exists on disk", async () => {
+    const mockedExistsSync = vi.mocked(fs.existsSync);
+    mockedGetTasks.mockResolvedValue([task("Task A")]);
+    mockedGetTaskAttachments.mockResolvedValue([
+      { id: "att-1", name: "report.pdf", contentType: "application/pdf", size: 1024 },
+    ]);
+    // First call: attachDir doesn't exist; second call: file already exists
+    mockedExistsSync.mockImplementation((p) => {
+      return String(p).endsWith("att-1-report.pdf");
+    });
+
+    await exportList("Shopping", "out.md", undefined, false, true);
+
+    expect(mockedDownloadAttachment).not.toHaveBeenCalled();
+    expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledTimes(1); // only the markdown file
+  });
 });

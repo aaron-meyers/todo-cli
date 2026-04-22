@@ -294,8 +294,10 @@ export async function exportList(
         const diskName = `${att.id}-${safeName}`;
         const diskPath = path.join(attachDir, diskName);
 
-        const content = await downloadAttachment(list.id, task.id, att.id);
-        fs.writeFileSync(diskPath, content);
+        if (!fs.existsSync(diskPath)) {
+          const content = await downloadAttachment(list.id, task.id, att.id);
+          fs.writeFileSync(diskPath, content);
+        }
 
         renderAttachments.push({
           displayName: att.name,
