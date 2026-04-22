@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 
-const SCOPES = ["Tasks.Read"];
+const SCOPES = ["Tasks.ReadWrite"];
 
 const CLIENT_ID = "47100993-404c-4e79-989b-e2592594fbc6";
 const TENANT_ID = "common";

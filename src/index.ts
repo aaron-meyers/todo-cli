@@ -9,7 +9,36 @@ const program = new Command();
 program
   .name("todo")
   .description("CLI for Microsoft To-Do")
-  .version("1.0.0");
+  .version("1.0.0")
+  .option("--verbose", "Show detailed output and full error information");
+
+function isVerbose(): boolean {
+  return program.opts().verbose === true;
+}
+
+function handleError(err: unknown): never {
+  if (isVerbose() && err instanceof Error) {
+    console.error(`Error: ${err.message}`);
+    // Graph SDK errors often have useful properties
+    const graphErr = err as unknown as Record<string, unknown>;
+    if (graphErr.statusCode) console.error(`  Status code: ${graphErr.statusCode}`);
+    if (graphErr.code) console.error(`  Code: ${graphErr.code}`);
+    if (graphErr.requestId) console.error(`  Request ID: ${graphErr.requestId}`);
+    if (graphErr.body) {
+      try {
+        const body = typeof graphErr.body === "string" ? JSON.parse(graphErr.body) : graphErr.body;
+        console.error(`  Response body: ${JSON.stringify(body, null, 2)}`);
+      } catch {
+        console.error(`  Response body: ${graphErr.body}`);
+      }
+    }
+    console.error(`\nStack trace:\n${err.stack}`);
+  } else {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Error: ${message}`);
+  }
+  process.exit(1);
+}
 
 program
   .command("export")
@@ -17,14 +46,13 @@ program
   .requiredOption("-l, --list <identifier>", "Task list ID or name (partial, case-insensitive)")
   .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
+  .option("-a, --attachments", "Download and include task attachments")
   .option("--ordering-source <path>", "File from To-Do 'Share copy' to set task order")
-  .action(async (opts: { list: string; out?: string; metadata?: boolean; orderingSource?: string }) => {
+  .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean; orderingSource?: string }) => {
     try {
-      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata);
+      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata, opts.attachments);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`Error: ${message}`);
-      process.exit(1);
+      handleError(err);
     }
   });
 
@@ -37,9 +65,7 @@ program
       const lists = await getTaskLists();
       console.error(formatListOutput(lists, opts.verbose));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`Error: ${message}`);
-      process.exit(1);
+      handleError(err);
     }
   });
 

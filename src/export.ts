@@ -1,8 +1,20 @@
 import * as fs from "node:fs";
+import * as path from "node:path";
 import TurndownService from "turndown";
-import { getTaskLists, getTasks, type TodoTaskList, type TodoTask, type RecurrencePattern } from "./graph.js";
+import { getTaskLists, getTasks, getTaskAttachments, downloadAttachment, type TodoTaskList, type TodoTask, type RecurrencePattern } from "./graph.js";
 
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
+
+/** Attachment info resolved for rendering (display name + relative path). */
+export interface RenderAttachment {
+  displayName: string;
+  relativePath: string;
+}
+
+/** Sanitize a filename for safe filesystem use. */
+export function sanitizeFilename(name: string): string {
+  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/\.+$/, "");
+}
 
 /**
  * Format task lists for display, one per line.
@@ -173,7 +185,8 @@ export function formatMetadata(task: TodoTask): string {
 export function renderMarkdown(
   tasks: TodoTask[],
   orderingSource?: string,
-  metadata = false
+  metadata = false,
+  attachmentMap: Map<string, RenderAttachment[]> = new Map()
 ): string {
   const incomplete = tasks.filter((t) => t.status !== "completed");
   const completed = tasks.filter((t) => t.status === "completed");
@@ -216,6 +229,14 @@ export function renderMarkdown(
         lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
       }
     }
+    const taskAttachments = attachmentMap.get(t.id) ?? [];
+    for (const att of taskAttachments) {
+      const encodedPath = att.relativePath
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/");
+      lines.push(`    - [${att.displayName}](${encodedPath})`);
+    }
     if (t.body) {
       const markdown = turndown.turndown(t.body);
       for (const line of markdown.split(/\n/)) {
@@ -237,7 +258,8 @@ export async function exportList(
   identifier: string,
   outPath?: string,
   orderingSourcePath?: string,
-  metadata = false
+  metadata = false,
+  attachments = false
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
@@ -250,7 +272,41 @@ export async function exportList(
     ? fs.readFileSync(orderingSourcePath, "utf-8")
     : undefined;
 
-  const markdown = renderMarkdown(tasks, orderingSource, metadata);
+  const attachmentMap = new Map<string, RenderAttachment[]>();
+
+  if (attachments) {
+    const basename = path.basename(resolvedPath, path.extname(resolvedPath));
+    const outDir = path.dirname(resolvedPath);
+    const attachDir = path.join(outDir, `${basename}.attachments`);
+    const attachDirName = `${basename}.attachments`;
+
+    for (const task of tasks) {
+      const taskAttachments = await getTaskAttachments(list.id, task.id);
+      if (taskAttachments.length === 0) continue;
+
+      if (!fs.existsSync(attachDir)) {
+        fs.mkdirSync(attachDir, { recursive: true });
+      }
+
+      const renderAttachments: RenderAttachment[] = [];
+      for (const att of taskAttachments) {
+        const safeName = sanitizeFilename(att.name) || att.id;
+        const diskName = `${att.id}-${safeName}`;
+        const diskPath = path.join(attachDir, diskName);
+
+        const content = await downloadAttachment(list.id, task.id, att.id);
+        fs.writeFileSync(diskPath, content);
+
+        renderAttachments.push({
+          displayName: att.name,
+          relativePath: `${attachDirName}/${diskName}`,
+        });
+      }
+      attachmentMap.set(task.id, renderAttachments);
+    }
+  }
+
+  const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap);
   fs.writeFileSync(resolvedPath, markdown, "utf-8");
 
   console.error(

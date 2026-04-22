@@ -4,15 +4,17 @@ import type { TodoTask, TodoTaskList } from "../graph.js";
 vi.mock("../graph.js", () => ({
   getTaskLists: vi.fn(),
   getTasks: vi.fn(),
+  getTaskAttachments: vi.fn(),
+  downloadAttachment: vi.fn(),
 }));
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
-  return { ...actual, writeFileSync: vi.fn() };
+  return { ...actual, writeFileSync: vi.fn(), existsSync: vi.fn(() => true), mkdirSync: vi.fn() };
 });
 
 import * as fs from "node:fs";
-import { getTaskLists, getTasks } from "../graph.js";
+import { getTaskLists, getTasks, getTaskAttachments, downloadAttachment } from "../graph.js";
 import {
   resolveList,
   parseOrderingSource,
@@ -21,12 +23,16 @@ import {
   formatListOutput,
   formatMetadata,
   formatRecurrence,
+  sanitizeFilename,
   toDateOnly,
   exportList,
+  type RenderAttachment,
 } from "../export.js";
 
 const mockedGetTaskLists = vi.mocked(getTaskLists);
 const mockedGetTasks = vi.mocked(getTasks);
+const mockedGetTaskAttachments = vi.mocked(getTaskAttachments);
+const mockedDownloadAttachment = vi.mocked(downloadAttachment);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -435,6 +441,77 @@ describe("renderMarkdown", () => {
 });
 
 // ---------------------------------------------------------------------------
+// sanitizeFilename
+// ---------------------------------------------------------------------------
+
+describe("sanitizeFilename", () => {
+  it("passes through safe names", () => {
+    expect(sanitizeFilename("report.pdf")).toBe("report.pdf");
+  });
+
+  it("replaces unsafe characters", () => {
+    expect(sanitizeFilename('file<>:"/\\|?*.txt')).toBe("file_________.txt");
+  });
+
+  it("strips trailing dots", () => {
+    expect(sanitizeFilename("file...")).toBe("file");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderMarkdown with attachments
+// ---------------------------------------------------------------------------
+
+describe("renderMarkdown with attachments", () => {
+  it("renders attachments as indented links", () => {
+    const t = task("Task");
+    const attachmentMap = new Map<string, RenderAttachment[]>([
+      ["id-Task", [{ displayName: "report.pdf", relativePath: "out.attachments/att1-report.pdf" }]],
+    ]);
+    const md = renderMarkdown([t], undefined, false, attachmentMap);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [report.pdf](out.attachments/att1-report.pdf)",
+    ]);
+  });
+
+  it("renders attachments after linked resources and before notes", () => {
+    const t = task("Task", "notStarted", [
+      { displayName: "Subtask", isChecked: false },
+    ], "<p>A note</p>", [
+      { displayName: "Link", webUrl: "https://example.com", applicationName: "App" },
+    ]);
+    const attachmentMap = new Map<string, RenderAttachment[]>([
+      ["id-Task", [{ displayName: "file.txt", relativePath: "out.attachments/att1-file.txt" }]],
+    ]);
+    const md = renderMarkdown([t], undefined, false, attachmentMap);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - [ ] Subtask",
+      "    - [Link](https://example.com) (App)",
+      "    - [file.txt](out.attachments/att1-file.txt)",
+      "    - A note",
+    ]);
+  });
+
+  it("URL-encodes attachment paths with special characters", () => {
+    const t = task("Task");
+    const attachmentMap = new Map<string, RenderAttachment[]>([
+      ["id-Task", [{ displayName: "my file.pdf", relativePath: "out.attachments/att1-my file.pdf" }]],
+    ]);
+    const md = renderMarkdown([t], undefined, false, attachmentMap);
+    expect(md).toContain("(out.attachments/att1-my%20file.pdf)");
+  });
+
+  it("omits attachments when map is empty", () => {
+    const md = renderMarkdown([task("Task")]);
+    expect(md).toBe("- [ ] Task\n");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // toDateOnly
 // ---------------------------------------------------------------------------
 
@@ -610,5 +687,38 @@ describe("exportList", () => {
 
   it("throws for unknown list identifier", async () => {
     await expect(exportList("nope", "out.md")).rejects.toThrow("No task list found");
+  });
+
+  it("downloads attachments when flag is set", async () => {
+    const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+    const mockedExistsSync = vi.mocked(fs.existsSync);
+    const mockedMkdirSync = vi.mocked(fs.mkdirSync);
+    mockedGetTasks.mockResolvedValue([task("Task A")]);
+    mockedGetTaskAttachments.mockResolvedValue([
+      { id: "att-1", name: "report.pdf", contentType: "application/pdf", size: 1024 },
+    ]);
+    mockedDownloadAttachment.mockResolvedValue(Buffer.from("fake-pdf"));
+    mockedExistsSync.mockReturnValue(false);
+
+    await exportList("Shopping", "out.md", undefined, false, true);
+
+    expect(mockedGetTaskAttachments).toHaveBeenCalledWith("list-1", "id-Task A");
+    expect(mockedDownloadAttachment).toHaveBeenCalledWith("list-1", "id-Task A", "att-1");
+    expect(mockedMkdirSync).toHaveBeenCalled();
+    // Markdown file + attachment file = 2 writes
+    expect(mockedWriteFileSync).toHaveBeenCalledTimes(2);
+    const mdContent = mockedWriteFileSync.mock.calls.find(
+      (c) => c[0] === "out.md"
+    )?.[1] as string;
+    expect(mdContent).toContain("[report.pdf]");
+    expect(mdContent).toContain("out.attachments/att-1-report.pdf");
+  });
+
+  it("skips attachment download when flag is not set", async () => {
+    mockedGetTasks.mockResolvedValue([task("Task A")]);
+
+    await exportList("Shopping", "out.md");
+
+    expect(mockedGetTaskAttachments).not.toHaveBeenCalled();
   });
 });

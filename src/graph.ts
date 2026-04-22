@@ -23,6 +23,13 @@ export interface LinkedResource {
   applicationName: string;
 }
 
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+}
+
 export interface TodoTask {
   id: string;
   title: string;
@@ -122,4 +129,66 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
   }
 
   return tasks;
+}
+
+/** Fetch attachment metadata for a task. */
+export async function getTaskAttachments(
+  listId: string,
+  taskId: string
+): Promise<TaskAttachment[]> {
+  const token = await getAccessToken();
+  const client = createClient(token);
+
+  const attachments: TaskAttachment[] = [];
+  let url: string | null | undefined =
+    `/me/todo/lists/${listId}/tasks/${taskId}/attachments`;
+
+  try {
+    while (url) {
+      const response = await client.api(url).get();
+      for (const item of response.value) {
+        attachments.push({
+          id: item.id,
+          name: item.name,
+          contentType: item.contentType,
+          size: item.size,
+        });
+      }
+      url = response["@odata.nextLink"] ?? null;
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Failed to fetch attachments for task ${taskId}: ${msg}`,
+      { cause: err }
+    );
+  }
+
+  return attachments;
+}
+
+/** Download the binary content of a task attachment. */
+export async function downloadAttachment(
+  listId: string,
+  taskId: string,
+  attachmentId: string
+): Promise<Buffer> {
+  const token = await getAccessToken();
+  const client = createClient(token);
+
+  try {
+    const response = await client
+      .api(
+        `/me/todo/lists/${listId}/tasks/${taskId}/attachments/${attachmentId}`
+      )
+      .get();
+
+    return Buffer.from(response.contentBytes, "base64");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Failed to download attachment ${attachmentId} for task ${taskId}: ${msg}`,
+      { cause: err }
+    );
+  }
 }
