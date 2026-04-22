@@ -37,7 +37,7 @@ Print all task lists to stderr, one per line.
 ### `todo export`
 
 ```
-todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--ordering-source <file>]
+todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <file>]
 ```
 
 #### Parameters
@@ -47,7 +47,14 @@ todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--ord
 | `--list <identifier>` | Yes | Identifies the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
+| `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
 | `--ordering-source <file>` | No | Path to a text file produced by the To-Do app's "Share copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
+
+### Global Options
+
+| Parameter | Description |
+|---|---|
+| `--verbose` | Show detailed error output including status codes, response bodies, request IDs, and stack traces. Useful for diagnosing Graph API errors. |
 
 ### List Resolution
 
@@ -91,7 +98,8 @@ Each task is rendered as a checkbox line. Below the task line, indented child it
 
 1. **Subtasks** (checklist items) — indented checkboxes.
 2. **Linked resources** — indented Markdown links in the format `- [displayName](webUrl) (applicationName)`.
-3. **Notes** — the task body (HTML) converted to Markdown via Turndown, with each line rendered as an indented bullet item.
+3. **Attachments** — indented Markdown links to downloaded files in the format `- [fileName](relativePath)` (only when `--attachments` is enabled).
+4. **Notes** — the task body (HTML) converted to Markdown via Turndown, with each line rendered as an indented bullet item.
 
 **Linked resource inlining:** When a task has exactly one linked resource whose `displayName` matches the task title, the link is inlined in the task title (e.g., `- [ ] [Task title](url)`) instead of appearing as a separate indented item.
 
@@ -100,6 +108,7 @@ Each task is rendered as a checkbox line. Below the task line, indented child it
     - [x] Milk
     - [ ] Eggs
     - [Grocery list](https://example.com) (OneNote)
+    - [receipt.pdf](Buy%20groceries.attachments/att1-receipt.pdf)
     - Check the pantry first
 - [x] [Send report](https://outlook.office.com/mail/read/123)
 - [ ] Book flight
@@ -132,6 +141,28 @@ Example with metadata:
 
 Only present fields are included; tasks with no metadata have no emoji suffix.
 
+## Attachments
+
+When `--attachments` is enabled, the CLI fetches file attachments for each task via the Graph API and downloads them to a folder next to the output Markdown file.
+
+### Storage
+
+- Attachments are stored in a `<basename>.attachments/` folder (e.g., `Shopping.attachments/` for `Shopping.md`).
+- Each file is named `<attachmentId>-<sanitizedName>` to avoid collisions between tasks.
+- Unsafe filesystem characters in filenames are replaced with `_`.
+
+### Rendering
+
+Each attachment is rendered as an indented Markdown link after linked resources and before notes:
+
+```markdown
+- [ ] Buy groceries
+    - [receipt.pdf](Buy%20groceries.attachments/att1-receipt.pdf)
+    - [photo.jpg](Buy%20groceries.attachments/att2-photo.jpg)
+```
+
+Path segments are URL-encoded in the Markdown link to handle spaces and special characters.
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -160,6 +191,12 @@ todo export --list "AQMkADAwATMw..." --out work.md
 # Export with metadata
 todo export --list "Shopping" -m
 
+# Export with attachments
+todo export --list "Shopping" -a
+
 # Export with ordering
 todo export --list "Daily" --ordering-source ~/To-Do/Daily-share.md
+
+# Verbose mode for debugging API errors
+todo --verbose export --list "Shopping" -a
 ```
