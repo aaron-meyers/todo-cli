@@ -70,7 +70,7 @@ program
   .action(async (opts: { verbose?: boolean }) => {
     try {
       const lists = await getTaskLists();
-      console.error(formatListOutput(lists, opts.verbose));
+      console.log(formatListOutput(lists, opts.verbose));
     } catch (err: unknown) {
       handleError(err);
     }
