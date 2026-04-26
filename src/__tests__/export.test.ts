@@ -27,6 +27,7 @@ import {
   toDateOnly,
   exportList,
   type RenderAttachment,
+  type InlineLinkMode,
 } from "../export.js";
 
 const mockedGetTaskLists = vi.mocked(getTaskLists);
@@ -436,6 +437,44 @@ describe("renderMarkdown", () => {
       "- [ ] Task",
       "    - [Task](https://example.com/1) (App1)",
       "    - [Other](https://example.com/2) (App2)",
+    ]);
+  });
+
+  it("inlineLink=always inlines first linked resource regardless of title match", () => {
+    const t = task("My Task", "notStarted", [], "", [
+      { displayName: "Different Name", webUrl: "https://example.com/1", applicationName: "App" },
+    ]);
+    const md = renderMarkdown([t], undefined, false, new Map(), "always");
+    expect(md).toBe("- [ ] [My Task](https://example.com/1)\n");
+  });
+
+  it("inlineLink=always inlines first and renders remaining as bullets", () => {
+    const t = task("My Task", "notStarted", [], "", [
+      { displayName: "Link1", webUrl: "https://example.com/1", applicationName: "App1" },
+      { displayName: "Link2", webUrl: "https://example.com/2", applicationName: "App2" },
+    ]);
+    const md = renderMarkdown([t], undefined, false, new Map(), "always");
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] [My Task](https://example.com/1)",
+      "    - [Link2](https://example.com/2) (App2)",
+    ]);
+  });
+
+  it("inlineLink=always does not inline when no linked resources", () => {
+    const md = renderMarkdown([task("Task")], undefined, false, new Map(), "always");
+    expect(md).toBe("- [ ] Task\n");
+  });
+
+  it("inlineLink=never renders all linked resources as bullets", () => {
+    const t = task("Review PR", "notStarted", [], "", [
+      { displayName: "Review PR", webUrl: "https://github.com/pr/1", applicationName: "GitHub" },
+    ]);
+    const md = renderMarkdown([t], undefined, false, new Map(), "never");
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Review PR",
+      "    - [Review PR](https://github.com/pr/1) (GitHub)",
     ]);
   });
 });

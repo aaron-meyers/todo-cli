@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { exportList, formatListOutput } from "./export.js";
+import { exportList, formatListOutput, type InlineLinkMode } from "./export.js";
 import { getTaskLists } from "./graph.js";
 
 const program = new Command();
@@ -47,11 +47,17 @@ program
   .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
+  .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File from To-Do 'Send a copy' to set task order")
-  .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean | string; orderingSource?: string }) => {
+  .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
-      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath);
+      const inlineLink = (opts.inlineLink ?? "auto") as InlineLinkMode;
+      if (!["auto", "always", "never"].includes(inlineLink)) {
+        console.error(`Error: --inline-link must be auto, always, or never (got "${inlineLink}")`);
+        process.exit(1);
+      }
+      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink);
     } catch (err: unknown) {
       handleError(err);
     }

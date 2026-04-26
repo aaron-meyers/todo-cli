@@ -177,6 +177,8 @@ export function formatMetadata(task: TodoTask): string {
   return parts.join(" ");
 }
 
+export type InlineLinkMode = "auto" | "always" | "never";
+
 /**
  * Render tasks to Markdown checkbox lines.
  * Incomplete tasks appear first, followed by completed tasks.
@@ -186,7 +188,8 @@ export function renderMarkdown(
   tasks: TodoTask[],
   orderingSource?: string,
   metadata = false,
-  attachmentMap: Map<string, RenderAttachment[]> = new Map()
+  attachmentMap: Map<string, RenderAttachment[]> = new Map(),
+  inlineLink: InlineLinkMode = "auto"
 ): string {
   const incomplete = tasks.filter((t) => t.status !== "completed");
   const completed = tasks.filter((t) => t.status === "completed");
@@ -209,13 +212,15 @@ export function renderMarkdown(
     const meta = metaStr ? ` ${metaStr}` : "";
     const titleText = t.title.trimEnd();
 
-    // Inline the link in the title when there's exactly one linked resource
-    // whose displayName matches the task title
-    const inlineLink =
-      t.linkedResources.length === 1 &&
-      t.linkedResources[0].displayName === titleText;
+    // Determine whether to inline a linked resource in the title
+    const shouldInline =
+      t.linkedResources.length > 0 &&
+      (inlineLink === "always" ||
+        (inlineLink === "auto" &&
+          t.linkedResources.length === 1 &&
+          t.linkedResources[0].displayName === titleText));
 
-    if (inlineLink) {
+    if (shouldInline) {
       lines.push(`- ${checkbox} [${titleText}](${t.linkedResources[0].webUrl})${meta}`);
     } else {
       lines.push(`- ${checkbox} ${titleText}${meta}`);
@@ -224,10 +229,12 @@ export function renderMarkdown(
       const subCheckbox = ci.isChecked ? "[x]" : "[ ]";
       lines.push(`    - ${subCheckbox} ${ci.displayName.trimEnd()}`);
     }
-    if (!inlineLink) {
-      for (const lr of t.linkedResources) {
-        lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
-      }
+    // Render remaining linked resources as nested items
+    const remainingResources = shouldInline
+      ? t.linkedResources.slice(1)
+      : t.linkedResources;
+    for (const lr of remainingResources) {
+      lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
     }
     const taskAttachments = attachmentMap.get(t.id) ?? [];
     for (const att of taskAttachments) {
@@ -260,7 +267,8 @@ export async function exportList(
   orderingSourcePath?: string,
   metadata = false,
   attachments = false,
-  attachmentPath?: string
+  attachmentPath?: string,
+  inlineLink: InlineLinkMode = "auto"
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
@@ -312,7 +320,7 @@ export async function exportList(
     }
   }
 
-  const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap);
+  const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap, inlineLink);
   fs.writeFileSync(resolvedPath, markdown, "utf-8");
 
   console.error(
