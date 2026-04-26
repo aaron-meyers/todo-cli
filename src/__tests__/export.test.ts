@@ -129,7 +129,7 @@ describe("resolveList", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseOrderingSource", () => {
-  it("extracts task titles from share format", () => {
+  it("extracts task titles from send-a-copy format", () => {
     const content = [
       "📅 My List",
       "",

@@ -75,7 +75,7 @@ export async function resolveList(
 }
 
 /**
- * Parse a "Share copy" text from the To-Do app and return an ordered
+ * Parse a "Send a copy" text from the To-Do app and return an ordered
  * list of task titles. The format uses ◯ for parent tasks, ◦/✔ for subtasks,
  * and optionally appends ★ for important tasks.
  */

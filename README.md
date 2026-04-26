@@ -51,7 +51,7 @@ todo export -l <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-sour
 | `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`) |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links |
-| `--ordering-source <file>` | No | Text file from To-Do's "Share copy" to set task order |
+| `--ordering-source <file>` | No | Text file from To-Do's "Send a copy" to set task order |
 
 ### Global Options
 
@@ -80,8 +80,8 @@ todo export -l "Shopping" -m
 # Export with attachments downloaded to Shopping.attachments/
 todo export -l "Shopping" -a
 
-# Export with ordering from a To-Do "Share copy" file
-todo export -l Daily --ordering-source ~/To-Do/Daily-share.md
+# Export with ordering from a To-Do "Send a copy" file
+todo export -l Daily --ordering-source ~/To-Do/Daily-send.md
 
 # Verbose mode for debugging
 todo --verbose export -l "Shopping" -a

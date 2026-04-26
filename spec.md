@@ -48,7 +48,7 @@ todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--att
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
-| `--ordering-source <file>` | No | Path to a text file produced by the To-Do app's "Share copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
+| `--ordering-source <file>` | No | Path to a text file produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
 
 ### Global Options
 
@@ -70,7 +70,7 @@ If the partial match is **ambiguous** (more than one list matches), the CLI prin
 
 ## Ordering Source
 
-Microsoft Graph does not expose the custom sort order of tasks as displayed in the To-Do app. As a workaround, the `--ordering-source` option accepts a text file produced by the To-Do app's **"Share copy"** function, which preserves the user's custom task order.
+Microsoft Graph does not expose the custom sort order of tasks as displayed in the To-Do app. As a workaround, the `--ordering-source` option accepts a text file produced by the To-Do app's **"Send a copy"** function, which preserves the user's custom task order.
 
 The file uses the following format:
 
@@ -195,7 +195,7 @@ todo export --list "Shopping" -m
 todo export --list "Shopping" -a
 
 # Export with ordering
-todo export --list "Daily" --ordering-source ~/To-Do/Daily-share.md
+todo export --list "Daily" --ordering-source ~/To-Do/Daily-send.md
 
 # Verbose mode for debugging API errors
 todo --verbose export --list "Shopping" -a

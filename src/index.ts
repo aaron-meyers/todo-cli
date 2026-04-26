@@ -47,7 +47,7 @@ program
   .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
-  .option("--ordering-source <path>", "File from To-Do 'Share copy' to set task order")
+  .option("--ordering-source <path>", "File from To-Do 'Send a copy' to set task order")
   .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean | string; orderingSource?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
