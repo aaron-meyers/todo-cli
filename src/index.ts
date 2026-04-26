@@ -46,11 +46,12 @@ program
   .requiredOption("-l, --list <identifier>", "Task list ID or name (partial, case-insensitive)")
   .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
-  .option("-a, --attachments", "Download and include task attachments")
+  .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("--ordering-source <path>", "File from To-Do 'Share copy' to set task order")
-  .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean; orderingSource?: string }) => {
+  .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean | string; orderingSource?: string }) => {
     try {
-      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata, opts.attachments);
+      const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
+      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath);
     } catch (err: unknown) {
       handleError(err);
     }

@@ -738,4 +738,22 @@ describe("exportList", () => {
     expect(mockedDownloadAttachment).not.toHaveBeenCalled();
     expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledTimes(1); // only the markdown file
   });
+
+  it("uses custom attachment folder path when provided", async () => {
+    const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+    const mockedExistsSync = vi.mocked(fs.existsSync);
+    mockedGetTasks.mockResolvedValue([task("Task A")]);
+    mockedGetTaskAttachments.mockResolvedValue([
+      { id: "att-1", name: "report.pdf", contentType: "application/pdf", size: 1024 },
+    ]);
+    mockedDownloadAttachment.mockResolvedValue(Buffer.from("fake-pdf"));
+    mockedExistsSync.mockReturnValue(false);
+
+    await exportList("Shopping", "out.md", undefined, false, true, "my-files");
+
+    const mdContent = mockedWriteFileSync.mock.calls.find(
+      (c) => c[0] === "out.md"
+    )?.[1] as string;
+    expect(mdContent).toContain("[report.pdf](my-files/att-1-report.pdf)");
+  });
 });

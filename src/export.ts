@@ -259,7 +259,8 @@ export async function exportList(
   outPath?: string,
   orderingSourcePath?: string,
   metadata = false,
-  attachments = false
+  attachments = false,
+  attachmentPath?: string
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
@@ -275,10 +276,13 @@ export async function exportList(
   const attachmentMap = new Map<string, RenderAttachment[]>();
 
   if (attachments) {
-    const basename = path.basename(resolvedPath, path.extname(resolvedPath));
-    const outDir = path.dirname(resolvedPath);
-    const attachDir = path.join(outDir, `${basename}.attachments`);
-    const attachDirName = `${basename}.attachments`;
+    const defaultDir = path.basename(resolvedPath, path.extname(resolvedPath)) + ".attachments";
+    const attachDir = attachmentPath
+      ? path.resolve(path.dirname(resolvedPath), attachmentPath)
+      : path.join(path.dirname(resolvedPath), defaultDir);
+    const attachDirRel = attachmentPath
+      ? path.relative(path.dirname(resolvedPath), attachDir)
+      : defaultDir;
 
     for (const task of tasks) {
       const taskAttachments = await getTaskAttachments(list.id, task.id);
@@ -301,7 +305,7 @@ export async function exportList(
 
         renderAttachments.push({
           displayName: att.name,
-          relativePath: `${attachDirName}/${diskName}`,
+          relativePath: `${attachDirRel}/${diskName}`,
         });
       }
       attachmentMap.set(task.id, renderAttachments);
