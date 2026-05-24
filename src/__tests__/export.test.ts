@@ -24,6 +24,7 @@ import {
   formatMetadata,
   formatRecurrence,
   sanitizeFilename,
+  attachmentDiskName,
   toDateOnly,
   exportList,
   exportAllLists,
@@ -500,6 +501,36 @@ describe("sanitizeFilename", () => {
   });
 });
 
+describe("attachmentDiskName", () => {
+  it("uses <base>-<id-suffix><ext>", () => {
+    expect(attachmentDiskName("report.pdf", "AAAAAAAAAAAAAAAAabcdefg")).toBe("report-abcdefg.pdf");
+  });
+
+  it("ignores non-alphanumeric chars when computing the id suffix", () => {
+    expect(attachmentDiskName("report.pdf", "AQ-Mk_=AD/12345XYZ")).toBe("report-2345XYZ.pdf");
+  });
+
+  it("uses the full ID when fewer than 7 alphanumeric chars", () => {
+    expect(attachmentDiskName("report.pdf", "ab-cd")).toBe("report-abcd.pdf");
+  });
+
+  it("falls back to the original ID when it has no alphanumeric chars", () => {
+    expect(attachmentDiskName("report.pdf", "---")).toBe("report----.pdf");
+  });
+
+  it("omits the extension when the original name has none", () => {
+    expect(attachmentDiskName("README", "abcdefghij")).toBe("README-defghij");
+  });
+
+  it("treats dotfiles as having no extension", () => {
+    expect(attachmentDiskName(".env", "abcdefghij")).toBe(".env-defghij");
+  });
+
+  it("sanitizes unsafe characters in the original name", () => {
+    expect(attachmentDiskName("a/b:c.txt", "abcdefghij")).toBe("a_b_c-defghij.txt");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // renderMarkdown with attachments
 // ---------------------------------------------------------------------------
@@ -753,7 +784,7 @@ describe("exportList", () => {
       (c) => c[0] === "out.md"
     )?.[1] as string;
     expect(mdContent).toContain("[report.pdf]");
-    expect(mdContent).toContain("out.attachments/att-1-report.pdf");
+    expect(mdContent).toContain("out.attachments/report-att1.pdf");
   });
 
   it("skips attachment download when flag is not set", async () => {
@@ -772,7 +803,7 @@ describe("exportList", () => {
     ]);
     // First call: attachDir doesn't exist; second call: file already exists
     mockedExistsSync.mockImplementation((p) => {
-      return String(p).endsWith("att-1-report.pdf");
+      return String(p).endsWith("report-att1.pdf");
     });
 
     await exportList("Shopping", "out.md", undefined, false, true);
@@ -796,7 +827,7 @@ describe("exportList", () => {
     const mdContent = mockedWriteFileSync.mock.calls.find(
       (c) => c[0] === "out.md"
     )?.[1] as string;
-    expect(mdContent).toContain("[report.pdf](my-files/att-1-report.pdf)");
+    expect(mdContent).toContain("[report.pdf](my-files/report-att1.pdf)");
   });
 });
 

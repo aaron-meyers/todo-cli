@@ -17,6 +17,22 @@ export function sanitizeFilename(name: string): string {
 }
 
 /**
+ * Build the on-disk filename for an attachment as
+ * `<sanitized-base>-<id-suffix><ext>`, where `id-suffix` is the last 7
+ * alphanumeric characters of the attachment ID. If the original name has no
+ * extension, none is appended. If the sanitized base is empty, the suffix
+ * alone (plus extension) is used.
+ */
+export function attachmentDiskName(originalName: string, attachmentId: string): string {
+  const safe = sanitizeFilename(originalName);
+  const ext = path.extname(safe);
+  const base = ext ? safe.slice(0, -ext.length) : safe;
+  const alnum = attachmentId.replace(/[^A-Za-z0-9]/g, "");
+  const suffix = alnum.slice(-7) || attachmentId;
+  return base ? `${base}-${suffix}${ext}` : `${suffix}${ext}`;
+}
+
+/**
  * Format task lists for display, one per line.
  * When verbose is true, includes the list ID in parentheses.
  */
@@ -410,8 +426,7 @@ async function exportResolvedList(
 
       const renderAttachments: RenderAttachment[] = [];
       for (const att of taskAttachments) {
-        const safeName = sanitizeFilename(att.name) || att.id;
-        const diskName = `${att.id}-${safeName}`;
+        const diskName = attachmentDiskName(att.name, att.id);
         const diskPath = path.join(attachDir, diskName);
 
         if (!fs.existsSync(diskPath)) {
