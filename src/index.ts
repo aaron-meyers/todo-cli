@@ -49,7 +49,7 @@ program
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback; required to be a directory with --all)")
-  .option("--completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
+  .option("-c, --completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
   .option("--all", "Export every task list in the account")
   .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean; completedAttachments?: string }) => {
     try {
