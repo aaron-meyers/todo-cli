@@ -315,6 +315,61 @@ export async function exportList(
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
   const resolvedPath = outPath ?? `${list.displayName}.md`;
+  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink);
+}
+
+/**
+ * Export every task list in the account to Markdown files in the given directory.
+ *
+ * `outDir` defaults to the current working directory. If `orderingSourcePath`
+ * is provided it must point to a directory; per-list files are resolved using
+ * the same lookup rules as {@link resolveOrderingSourcePath}.
+ */
+export async function exportAllLists(
+  outDir = ".",
+  orderingSourcePath?: string,
+  metadata = false,
+  attachments = false,
+  attachmentPath?: string,
+  inlineLink: InlineLinkMode = "auto"
+): Promise<void> {
+  if (orderingSourcePath) {
+    let isDir = false;
+    try {
+      isDir = fs.statSync(orderingSourcePath).isDirectory();
+    } catch {
+      throw new Error(`--ordering-source path does not exist: ${orderingSourcePath}`);
+    }
+    if (!isDir) {
+      throw new Error(
+        `--ordering-source must be a directory when used with --all (got file: ${orderingSourcePath})`
+      );
+    }
+  }
+
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
+
+  const lists = await getTaskLists();
+  console.error(`Exporting ${lists.length} list(s) to ${outDir}`);
+
+  for (const list of lists) {
+    const filename = `${sanitizeFilename(list.displayName) || list.id}.md`;
+    const outPath = path.join(outDir, filename);
+    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink);
+  }
+}
+
+async function exportResolvedList(
+  list: TodoTaskList,
+  resolvedPath: string,
+  orderingSourcePath: string | undefined,
+  metadata: boolean,
+  attachments: boolean,
+  attachmentPath: string | undefined,
+  inlineLink: InlineLinkMode
+): Promise<void> {
   console.error(`Exporting list: ${list.displayName}`);
 
   const tasks = await getTasks(list.id);

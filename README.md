@@ -43,15 +43,17 @@ Print all task lists. Use `--verbose` to include list IDs.
 
 ```
 todo export <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-source <path>]
+todo export --all [-o <directory>] [-m] [-a] [--ordering-source <directory>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
-| `<list-identifier>` | Yes | List ID or name (partial, case-insensitive) — positional argument |
-| `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`) |
+| `<list-identifier>` | Yes (unless `--all`) | List ID or name (partial, case-insensitive) — positional argument |
+| `--all` | No | Export every task list. Disallows the `<list-identifier>` argument. `--out` becomes a directory (defaults to current directory) and `--ordering-source`, if provided, must be a directory. |
+| `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`). With `--all`, a directory (defaults to current directory). |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links |
-| `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order |
+| `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. |
 
 ### Global Options
 
@@ -82,6 +84,12 @@ todo export "Shopping" -a
 
 # Export with ordering from a To-Do "Send a copy" file
 todo export Daily --ordering-source ~/To-Do/Daily-send.md
+
+# Export every list to the current directory
+todo export --all
+
+# Export every list to ./exports, with per-list ordering files in ~/To-Do
+todo export --all -o ./exports --ordering-source ~/To-Do
 
 # Verbose mode for debugging
 todo --verbose export "Shopping" -a

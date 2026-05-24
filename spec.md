@@ -37,18 +37,20 @@ Print all task lists to stderr, one per line.
 ### `todo export`
 
 ```
-todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <file>]
+todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <path>]
+todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-source <directory>]
 ```
 
 #### Parameters
 
 | Parameter | Required | Description |
 |---|---|---|
-| `<list-identifier>` | Yes | Positional argument identifying the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
-| `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
+| `<list-identifier>` | Yes (unless `--all`) | Positional argument identifying the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
+| `--all` | No | Export every task list in the account. Mutually exclusive with `<list-identifier>`. Changes the semantics of `--out` and `--ordering-source` (see *Exporting All Lists* below). |
+| `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. With `--all`, this is a directory (defaults to the current directory); per-list files are written as `<list-name>.md` inside it. |
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
-| `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
+| `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). When combined with `--all`, this **must** be a directory. |
 
 ### Global Options
 
@@ -100,6 +102,15 @@ If `--ordering-source` refers to a directory, the CLI searches it for a file mat
 4. `<list-name-without-emoji-prefix>.txt`
 
 The "emoji prefix" is any sequence of leading emoji characters (and surrounding whitespace) before the first regular character — for example, `📅 Daily` falls back to `Daily`. If no candidate file exists, the export proceeds without applying any ordering and a warning is printed to stderr.
+
+## Exporting All Lists
+
+When `--all` is passed, the CLI exports every task list returned by the Graph API to its own Markdown file:
+
+- The `<list-identifier>` argument **must be omitted** (specifying both is an error).
+- `--out` is treated as a **directory** (defaults to the current working directory). It is created if missing. Each list is written to `<out-dir>/<list-name>.md`, with the list display name sanitized for filesystem safety.
+- `--ordering-source`, if provided, **must be a directory**. Per-list ordering files are resolved via the same lookup rules as the single-list case.
+- All other options (`--metadata`, `--attachments`, `--inline-link`) apply uniformly to every exported list.
 
 ## Output Format
 

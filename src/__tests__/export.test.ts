@@ -26,6 +26,7 @@ import {
   sanitizeFilename,
   toDateOnly,
   exportList,
+  exportAllLists,
   resolveOrderingSourcePath,
   stripEmojiPrefix,
   type RenderAttachment,
@@ -876,5 +877,75 @@ describe("resolveOrderingSourcePath", () => {
     mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
     mockedExistsSync.mockReturnValue(false);
     expect(resolveOrderingSourcePath("/dir", "Daily")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("exportAllLists", () => {
+  const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+  const mockedStatSync = vi.mocked(fs.statSync);
+  const mockedExistsSync = vi.mocked(fs.existsSync);
+  const mockedMkdirSync = vi.mocked(fs.mkdirSync);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetTaskLists.mockResolvedValue(sampleLists);
+    mockedGetTasks.mockResolvedValue([task("Only task")]);
+    mockedWriteFileSync.mockImplementation(() => {});
+    mockedExistsSync.mockReturnValue(true);
+  });
+
+  it("exports every list to <list-name>.md in the given directory", async () => {
+    await exportAllLists("/out");
+
+    expect(mockedGetTasks).toHaveBeenCalledTimes(sampleLists.length);
+    const paths = mockedWriteFileSync.mock.calls.map((c) => c[0]);
+    expect(paths).toEqual([
+      "/out/Shopping.md",
+      "/out/Daily.md",
+      "/out/Daily Standup.md",
+    ]);
+  });
+
+  it("defaults out directory to '.'", async () => {
+    await exportAllLists();
+    const firstPath = mockedWriteFileSync.mock.calls[0][0] as string;
+    expect(firstPath.startsWith("./") || !firstPath.includes("/")).toBe(true);
+  });
+
+  it("creates the output directory when it does not exist", async () => {
+    mockedExistsSync.mockImplementation(() => false);
+    await exportAllLists("/new-dir");
+    expect(mockedMkdirSync).toHaveBeenCalledWith("/new-dir", { recursive: true });
+  });
+
+  it("sanitizes unsafe characters in list names", async () => {
+    mockedGetTaskLists.mockResolvedValue([
+      { id: "list-x", displayName: "Foo/Bar:Baz" },
+    ]);
+    await exportAllLists("/out");
+    expect(mockedWriteFileSync.mock.calls[0][0]).toBe("/out/Foo_Bar_Baz.md");
+  });
+
+  it("rejects when --ordering-source is a file", async () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => false } as fs.Stats);
+    await expect(exportAllLists("/out", "ordering.md")).rejects.toThrow(
+      /must be a directory/
+    );
+  });
+
+  it("rejects when --ordering-source does not exist", async () => {
+    mockedStatSync.mockImplementation(() => { throw new Error("ENOENT"); });
+    await expect(exportAllLists("/out", "/missing")).rejects.toThrow(
+      /does not exist/
+    );
+  });
+
+  it("accepts a directory --ordering-source", async () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockReturnValue(false); // no per-list ordering files found
+    await exportAllLists("/out", "/ordering");
+    expect(mockedWriteFileSync).toHaveBeenCalledTimes(sampleLists.length);
   });
 });
