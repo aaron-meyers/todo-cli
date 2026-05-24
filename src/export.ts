@@ -137,7 +137,7 @@ export function formatRecurrence(pattern: RecurrencePattern): string {
   }
   if (type === "weekly") {
     if (daysOfWeek && daysOfWeek.length > 0) {
-      const days = daysOfWeek.join(", ");
+      const days = daysOfWeek.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ");
       return interval === 1 ? `every week on ${days}` : `every ${interval} weeks on ${days}`;
     }
     return interval === 1 ? "every week" : `every ${interval} weeks`;
@@ -158,6 +158,9 @@ export function formatMetadata(task: TodoTask): string {
   if (task.importance === "high") {
     parts.push("⏫");
   }
+  if (task.recurrence) {
+    parts.push(`🔁 ${formatRecurrence(task.recurrence)}`);
+  }
   if (task.createdDateTime) {
     parts.push(`➕ ${toDateOnly(task.createdDateTime)}`);
   }
@@ -166,9 +169,6 @@ export function formatMetadata(task: TodoTask): string {
   }
   if (task.reminderDateTime) {
     parts.push(`⏳ ${toDateOnly(task.reminderDateTime)}`);
-  }
-  if (task.recurrence) {
-    parts.push(`🔁 ${formatRecurrence(task.recurrence)}`);
   }
   if (task.completedDateTime) {
     parts.push(`✅ ${toDateOnly(task.completedDateTime)}`);

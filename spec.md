@@ -126,11 +126,13 @@ When `--metadata` is enabled, task metadata is appended inline after the task ti
 | Emoji | Field | Source (Graph API) |
 |---|---|---|
 | `⏫` | High priority | `importance === "high"` |
+| `🔁` | Recurrence | `recurrence.pattern` (e.g., "every day", "every week on Monday") |
 | `➕` | Created date | `createdDateTime` |
 | `📅` | Due date | `dueDateTime` |
 | `⏳` | Scheduled date | `reminderDateTime` (date only, time ignored) |
-| `🔁` | Recurrence | `recurrence.pattern` (e.g., "every day", "every week") |
 | `✅` | Completion date | `completedDateTime` |
+
+Fields are emitted in the order listed above. Weekday names in recurrence definitions are capitalized (e.g., `Monday`, `Wednesday`).
 
 Example with metadata:
 

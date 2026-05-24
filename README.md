@@ -113,7 +113,7 @@ Incomplete tasks appear first, followed by completed tasks. For each task:
 
 When `--attachments` is enabled, files are downloaded to a `<basename>.attachments/` folder next to the output Markdown file. Filenames are prefixed with the attachment ID to avoid collisions.
 
-When `--metadata` is enabled, task metadata is appended inline using Obsidian Tasks emoji format: `⏫` priority, `➕` created, `📅` due, `⏳` scheduled, `🔁` recurrence, `✅` completed.
+When `--metadata` is enabled, task metadata is appended inline using Obsidian Tasks emoji format, in this order: `⏫` priority, `🔁` recurrence, `➕` created, `📅` due, `⏳` scheduled, `✅` completed.
 
 ## Development
 

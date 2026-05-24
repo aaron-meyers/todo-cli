@@ -587,7 +587,7 @@ describe("formatRecurrence", () => {
 
   it("formats weekly with days", () => {
     expect(formatRecurrence({ type: "weekly", interval: 1, daysOfWeek: ["monday", "wednesday"] }))
-      .toBe("every week on monday, wednesday");
+      .toBe("every week on Monday, Wednesday");
   });
 
   it("formats monthly recurrence", () => {
@@ -622,7 +622,7 @@ describe("formatMetadata", () => {
       recurrence: { type: "weekly", interval: 1 },
     };
     expect(formatMetadata(t)).toBe(
-      "➕ 2024-04-10 📅 2024-04-25 ⏳ 2024-04-24 🔁 every week ✅ 2024-04-20"
+      "🔁 every week ➕ 2024-04-10 📅 2024-04-25 ⏳ 2024-04-24 ✅ 2024-04-20"
     );
   });
 
