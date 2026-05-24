@@ -28,6 +28,7 @@ import {
   toDateOnly,
   exportList,
   exportAllLists,
+  formatYamlScalar,
   resolveOrderingSourcePath,
   stripEmojiPrefix,
   type RenderAttachment,
@@ -1023,5 +1024,81 @@ describe("exportAllLists", () => {
     mockedExistsSync.mockReturnValue(false); // no per-list ordering files found
     await exportAllLists("/out", "/ordering");
     expect(mockedWriteFileSync).toHaveBeenCalledTimes(sampleLists.length);
+  });
+
+  it("adds YAML frontmatter when the sanitized filename differs from the display name", async () => {
+    mockedGetTaskLists.mockResolvedValue([
+      { id: "list-x", displayName: "Foo/Bar:Baz" },
+    ]);
+    await exportAllLists("/out");
+    const content = mockedWriteFileSync.mock.calls[0][1] as string;
+    expect(content.startsWith("---\ntitle: Foo/Bar:Baz\n---\n")).toBe(false); // ':' triggers quoting
+    expect(content.startsWith("---\ntitle: \"Foo/Bar:Baz\"\n---\n")).toBe(true);
+  });
+
+  it("omits frontmatter when the filename matches the display name exactly", async () => {
+    // sampleLists contains "Shopping" which sanitizes to itself
+    await exportAllLists("/out");
+    const shoppingCall = mockedWriteFileSync.mock.calls.find(
+      (c) => c[0] === "/out/Shopping.md"
+    );
+    const content = shoppingCall?.[1] as string;
+    expect(content.startsWith("---")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("formatYamlScalar", () => {
+  it("returns plain text for simple values", () => {
+    expect(formatYamlScalar("Daily")).toBe("Daily");
+    expect(formatYamlScalar("Daily Standup")).toBe("Daily Standup");
+    expect(formatYamlScalar("📅 Daily")).toBe("📅 Daily");
+  });
+
+  it("quotes when value contains YAML-special characters", () => {
+    expect(formatYamlScalar("a: b")).toBe('"a: b"');
+    expect(formatYamlScalar("a#b")).toBe('"a#b"');
+    expect(formatYamlScalar("- leading dash")).toBe('"- leading dash"');
+    expect(formatYamlScalar("[bracket]")).toBe('"[bracket]"');
+  });
+
+  it("escapes embedded double quotes and backslashes", () => {
+    expect(formatYamlScalar('Say "hi"')).toBe('"Say \\"hi\\""');
+    expect(formatYamlScalar("a\\b")).toBe('"a\\\\b"');
+  });
+
+  it("escapes newlines and tabs", () => {
+    expect(formatYamlScalar("a\nb\tc")).toBe('"a\\nb\\tc"');
+  });
+
+  it("quotes empty strings and strings with leading/trailing whitespace", () => {
+    expect(formatYamlScalar("")).toBe('""');
+    expect(formatYamlScalar("  padded  ")).toBe('"  padded  "');
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("exportList frontmatter", () => {
+  const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetTaskLists.mockResolvedValue(sampleLists);
+    mockedGetTasks.mockResolvedValue([task("A")]);
+    mockedWriteFileSync.mockImplementation(() => {});
+  });
+
+  it("omits frontmatter when default out path matches display name", async () => {
+    await exportList("Shopping");
+    const content = mockedWriteFileSync.mock.calls[0][1] as string;
+    expect(content.startsWith("---")).toBe(false);
+  });
+
+  it("emits frontmatter when --out filename differs from display name", async () => {
+    await exportList("Shopping", "different-name.md");
+    const content = mockedWriteFileSync.mock.calls[0][1] as string;
+    expect(content.startsWith("---\ntitle: Shopping\n---\n")).toBe(true);
   });
 });

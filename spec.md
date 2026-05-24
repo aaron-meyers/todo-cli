@@ -117,6 +117,18 @@ When `--all` is passed, the CLI exports every task list returned by the Graph AP
 
 The generated Markdown file contains one line per task. Incomplete tasks appear first, followed by completed tasks, preserving the API return order within each group.
 
+### YAML Frontmatter
+
+When the output filename (without extension) does **not** match the list's original display name — for example, when the name was sanitized for filesystem safety during `--all` export, or when the user supplied a different `--out` path — the file begins with a YAML frontmatter block containing the original list name:
+
+```markdown
+---
+title: 📅 Daily Review
+---
+```
+
+When the filename already matches the display name exactly, no frontmatter is emitted.
+
 Each task is rendered as a checkbox line. Below the task line, indented child items appear in this order:
 
 1. **Subtasks** (checklist items) — indented checkboxes.

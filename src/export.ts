@@ -461,9 +461,39 @@ async function exportResolvedList(
   }
 
   const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap, inlineLink);
-  fs.writeFileSync(resolvedPath, markdown, "utf-8");
+  const filenameBase = path.basename(resolvedPath, path.extname(resolvedPath));
+  const frontmatter = filenameBase === list.displayName
+    ? ""
+    : `---\ntitle: ${formatYamlScalar(list.displayName)}\n---\n`;
+  fs.writeFileSync(resolvedPath, frontmatter + markdown, "utf-8");
 
   console.error(
     `Wrote ${tasks.length} task(s) to ${resolvedPath}`
   );
+}
+
+/**
+ * Format a string as a YAML scalar suitable for a frontmatter value.
+ * Uses double-quoted style with minimal escaping when needed; otherwise
+ * returns the string unchanged.
+ */
+export function formatYamlScalar(value: string): string {
+  // Quote when the value contains characters that would otherwise be ambiguous
+  // in YAML, or when leading/trailing whitespace is present.
+  const needsQuoting =
+    value !== value.trim() ||
+    value === "" ||
+    /[:#&*!|>'"%@`,\[\]{}?\\]/.test(value) ||
+    /^[-?]/.test(value) ||
+    /\n/.test(value);
+
+  if (!needsQuoting) return value;
+
+  const escaped = value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t");
+  return `"${escaped}"`;
 }
