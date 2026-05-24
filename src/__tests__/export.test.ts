@@ -10,7 +10,7 @@ vi.mock("../graph.js", () => ({
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
-  return { ...actual, writeFileSync: vi.fn(), existsSync: vi.fn(() => true), mkdirSync: vi.fn() };
+  return { ...actual, writeFileSync: vi.fn(), existsSync: vi.fn(() => true), mkdirSync: vi.fn(), statSync: vi.fn(actual.statSync), readFileSync: vi.fn(actual.readFileSync) };
 });
 
 import * as fs from "node:fs";
@@ -26,6 +26,8 @@ import {
   sanitizeFilename,
   toDateOnly,
   exportList,
+  resolveOrderingSourcePath,
+  stripEmojiPrefix,
   type RenderAttachment,
   type InlineLinkMode,
 } from "../export.js";
@@ -794,5 +796,85 @@ describe("exportList", () => {
       (c) => c[0] === "out.md"
     )?.[1] as string;
     expect(mdContent).toContain("[report.pdf](my-files/att-1-report.pdf)");
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("stripEmojiPrefix", () => {
+  it("removes leading emoji and whitespace", () => {
+    expect(stripEmojiPrefix("📅 Daily")).toBe("Daily");
+    expect(stripEmojiPrefix("🛒 Shopping")).toBe("Shopping");
+  });
+
+  it("leaves names without an emoji prefix unchanged", () => {
+    expect(stripEmojiPrefix("Daily")).toBe("Daily");
+  });
+
+  it("handles multi-codepoint emoji (with variation selectors / ZWJ)", () => {
+    expect(stripEmojiPrefix("❤️ Loved")).toBe("Loved");
+    expect(stripEmojiPrefix("👨‍👩‍👧 Family")).toBe("Family");
+  });
+});
+
+describe("resolveOrderingSourcePath", () => {
+  const mockedStatSync = vi.mocked(fs.statSync);
+  const mockedExistsSync = vi.mocked(fs.existsSync);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns the argument unchanged when it is a file", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => false } as fs.Stats);
+    expect(resolveOrderingSourcePath("foo.md", "Daily")).toBe("foo.md");
+  });
+
+  it("returns the argument unchanged when path does not exist", () => {
+    mockedStatSync.mockImplementation(() => { throw new Error("ENOENT"); });
+    expect(resolveOrderingSourcePath("missing.md", "Daily")).toBe("missing.md");
+  });
+
+  it("finds <listName>.md in a directory", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockImplementation((p) => String(p).endsWith("Daily.md"));
+    expect(resolveOrderingSourcePath("/dir", "Daily")).toBe(
+      `${"/dir"}/Daily.md`.replace("//", "/")
+    );
+  });
+
+  it("falls back to .txt when .md is not present", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockImplementation((p) => String(p).endsWith("Daily.txt"));
+    const result = resolveOrderingSourcePath("/dir", "Daily");
+    expect(result).toMatch(/Daily\.txt$/);
+  });
+
+  it("falls back to emoji-stripped name when the prefixed name is not present", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockImplementation((p) => String(p) === "/dir/Daily.md");
+    const result = resolveOrderingSourcePath("/dir", "📅 Daily");
+    expect(result).toMatch(/Daily\.md$/);
+    expect(result).not.toMatch(/📅/);
+  });
+
+  it("prefers the full name (with emoji) over the stripped name", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockReturnValue(true);
+    const result = resolveOrderingSourcePath("/dir", "📅 Daily");
+    expect(result).toMatch(/📅 Daily\.md$/);
+  });
+
+  it("prefers .md over .txt", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockReturnValue(true);
+    const result = resolveOrderingSourcePath("/dir", "Daily");
+    expect(result).toMatch(/Daily\.md$/);
+  });
+
+  it("returns undefined when no candidate is found in the directory", () => {
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedExistsSync.mockReturnValue(false);
+    expect(resolveOrderingSourcePath("/dir", "Daily")).toBeUndefined();
   });
 });

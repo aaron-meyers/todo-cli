@@ -74,6 +74,48 @@ export async function resolveList(
   return partial[0];
 }
 
+/** Strip a leading emoji (and following whitespace) from a list name. */
+export function stripEmojiPrefix(name: string): string {
+  return name.replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\p{Emoji_Modifier}]+\s*/u, "");
+}
+
+/**
+ * Resolve a `--ordering-source` argument to a concrete file path.
+ *
+ * If the argument refers to a directory, search it for a file matching the
+ * list name, falling back to the list name with any leading emoji prefix
+ * removed. Both `.md` and `.txt` extensions are tried (in that order).
+ *
+ * Returns `undefined` if no matching file is found in the directory.
+ * For non-directory arguments, returns the argument unchanged.
+ */
+export function resolveOrderingSourcePath(
+  orderingSourceArg: string,
+  listName: string
+): string | undefined {
+  let isDir = false;
+  try {
+    isDir = fs.statSync(orderingSourceArg).isDirectory();
+  } catch {
+    return orderingSourceArg;
+  }
+
+  if (!isDir) return orderingSourceArg;
+
+  const names = [listName];
+  const stripped = stripEmojiPrefix(listName).trim();
+  if (stripped && stripped !== listName) names.push(stripped);
+
+  for (const name of names) {
+    for (const ext of [".md", ".txt"]) {
+      const candidate = path.join(orderingSourceArg, `${name}${ext}`);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+
+  return undefined;
+}
+
 /**
  * Parse a "Send a copy" text from the To-Do app and return an ordered
  * list of task titles. The format uses ◯ for parent tasks, ◦/✔ for subtasks,
@@ -277,9 +319,20 @@ export async function exportList(
 
   const tasks = await getTasks(list.id);
 
-  const orderingSource = orderingSourcePath
-    ? fs.readFileSync(orderingSourcePath, "utf-8")
-    : undefined;
+  let orderingSource: string | undefined;
+  if (orderingSourcePath) {
+    const resolvedOrderingPath = resolveOrderingSourcePath(orderingSourcePath, list.displayName);
+    if (resolvedOrderingPath) {
+      orderingSource = fs.readFileSync(resolvedOrderingPath, "utf-8");
+      if (resolvedOrderingPath !== orderingSourcePath) {
+        console.error(`Using ordering source: ${resolvedOrderingPath}`);
+      }
+    } else {
+      console.error(
+        `No ordering source file found for "${list.displayName}" in ${orderingSourcePath}`
+      );
+    }
+  }
 
   const attachmentMap = new Map<string, RenderAttachment[]>();
 

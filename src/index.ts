@@ -48,7 +48,7 @@ program
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
-  .option("--ordering-source <path>", "File from To-Do 'Send a copy' to set task order")
+  .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback)")
   .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;

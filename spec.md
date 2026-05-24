@@ -48,7 +48,7 @@ todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--att
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
-| `--ordering-source <file>` | No | Path to a text file produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
+| `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). |
 
 ### Global Options
 
@@ -89,6 +89,17 @@ The CLI parses lines starting with `◯` to extract parent task titles (in order
 2. Tasks not found in the ordering source are appended at the end in their original API order.
 
 Ordering is applied independently to the incomplete and completed groups (incomplete tasks still appear before completed tasks).
+
+### Directory argument
+
+If `--ordering-source` refers to a directory, the CLI searches it for a file matching the resolved list's display name. The following candidates are tried, in order, and the first existing file is used:
+
+1. `<list-name>.md`
+2. `<list-name>.txt`
+3. `<list-name-without-emoji-prefix>.md`
+4. `<list-name-without-emoji-prefix>.txt`
+
+The "emoji prefix" is any sequence of leading emoji characters (and surrounding whitespace) before the first regular character — for example, `📅 Daily` falls back to `Daily`. If no candidate file exists, the export proceeds without applying any ordering and a warning is printed to stderr.
 
 ## Output Format
 

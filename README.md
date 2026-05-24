@@ -42,7 +42,7 @@ Print all task lists. Use `--verbose` to include list IDs.
 ### `todo export`
 
 ```
-todo export -l <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-source <file>]
+todo export -l <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-source <path>]
 ```
 
 | Option | Required | Description |
@@ -51,7 +51,7 @@ todo export -l <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-sour
 | `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`) |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links |
-| `--ordering-source <file>` | No | Text file from To-Do's "Send a copy" to set task order |
+| `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order |
 
 ### Global Options
 
