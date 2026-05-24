@@ -43,13 +43,13 @@ function handleError(err: unknown): never {
 program
   .command("export")
   .description("Export a Microsoft To-Do task list to Markdown")
-  .requiredOption("-l, --list <identifier>", "Task list ID or name (partial, case-insensitive)")
+  .argument("<list>", "Task list ID or name (partial, case-insensitive)")
   .option("-o, --out <path>", "Output Markdown file path (defaults to <list-name>.md)")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback)")
-  .action(async (opts: { list: string; out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string }) => {
+  .action(async (list: string, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
       const inlineLink = (opts.inlineLink ?? "auto") as InlineLinkMode;
@@ -57,7 +57,7 @@ program
         console.error(`Error: --inline-link must be auto, always, or never (got "${inlineLink}")`);
         process.exit(1);
       }
-      await exportList(opts.list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink);
+      await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink);
     } catch (err: unknown) {
       handleError(err);
     }

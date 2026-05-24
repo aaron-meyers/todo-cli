@@ -37,14 +37,14 @@ Print all task lists to stderr, one per line.
 ### `todo export`
 
 ```
-todo export --list <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <file>]
+todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <file>]
 ```
 
 #### Parameters
 
 | Parameter | Required | Description |
 |---|---|---|
-| `--list <identifier>` | Yes | Identifies the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
+| `<list-identifier>` | Yes | Positional argument identifying the task list to export. Accepts a **list ID** or a **list name** (see *List Resolution* below). |
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. The file is created or overwritten. |
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
@@ -193,23 +193,23 @@ todo list
 todo list --verbose
 
 # Export by exact list name
-todo export --list "Shopping" --out shopping.md
+todo export "Shopping" --out shopping.md
 
 # Export by partial name (case-insensitive)
-todo export --list "shop" --out shopping.md
+todo export "shop" --out shopping.md
 
 # Export by list ID
-todo export --list "AQMkADAwATMw..." --out work.md
+todo export "AQMkADAwATMw..." --out work.md
 
 # Export with metadata
-todo export --list "Shopping" -m
+todo export "Shopping" -m
 
 # Export with attachments
-todo export --list "Shopping" -a
+todo export "Shopping" -a
 
 # Export with ordering
-todo export --list "Daily" --ordering-source ~/To-Do/Daily-send.md
+todo export "Daily" --ordering-source ~/To-Do/Daily-send.md
 
 # Verbose mode for debugging API errors
-todo --verbose export --list "Shopping" -a
+todo --verbose export "Shopping" -a
 ```

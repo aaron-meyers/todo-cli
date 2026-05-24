@@ -42,12 +42,12 @@ Print all task lists. Use `--verbose` to include list IDs.
 ### `todo export`
 
 ```
-todo export -l <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-source <path>]
+todo export <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-source <path>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
-| `-l, --list <identifier>` | Yes | List ID or name (partial, case-insensitive) |
+| `<list-identifier>` | Yes | List ID or name (partial, case-insensitive) — positional argument |
 | `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`) |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links |
@@ -66,25 +66,25 @@ todo export -l <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-sour
 todo list
 
 # Export by list name
-todo export -l "Shopping"
+todo export "Shopping"
 
 # Export by partial name with custom output path
-todo export -l "shop" -o shopping.md
+todo export "shop" -o shopping.md
 
 # Export by list ID
-todo export --list "AQMkADAwATMw..." --out work.md
+todo export "AQMkADAwATMw..." --out work.md
 
 # Export with metadata (dates, recurrence, priority)
-todo export -l "Shopping" -m
+todo export "Shopping" -m
 
 # Export with attachments downloaded to Shopping.attachments/
-todo export -l "Shopping" -a
+todo export "Shopping" -a
 
 # Export with ordering from a To-Do "Send a copy" file
-todo export -l Daily --ordering-source ~/To-Do/Daily-send.md
+todo export Daily --ordering-source ~/To-Do/Daily-send.md
 
 # Verbose mode for debugging
-todo --verbose export -l "Shopping" -a
+todo --verbose export "Shopping" -a
 ```
 
 ### Authentication
