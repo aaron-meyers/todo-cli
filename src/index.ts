@@ -49,8 +49,9 @@ program
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback; required to be a directory with --all)")
+  .option("-s, --skip-completed-attachments", "Skip downloading attachments for completed tasks (rendered as plain text with ' (skipped)' suffix)")
   .option("--all", "Export every task list in the account")
-  .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean }) => {
+  .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean; skipCompletedAttachments?: boolean }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
       const inlineLink = (opts.inlineLink ?? "auto") as InlineLinkMode;
@@ -63,13 +64,13 @@ program
           console.error("Error: cannot specify a list argument together with --all");
           process.exit(1);
         }
-        await exportAllLists(opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink);
+        await exportAllLists(opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, !!opts.skipCompletedAttachments);
       } else {
         if (!list) {
           console.error("Error: missing required list argument (or use --all to export every list)");
           process.exit(1);
         }
-        await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink);
+        await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, !!opts.skipCompletedAttachments);
       }
     } catch (err: unknown) {
       handleError(err);

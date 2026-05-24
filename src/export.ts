@@ -8,7 +8,10 @@ const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-
 /** Attachment info resolved for rendering (display name + relative path). */
 export interface RenderAttachment {
   displayName: string;
-  relativePath: string;
+  /** Relative path to the downloaded file. Undefined when the download was skipped. */
+  relativePath?: string;
+  /** True when the attachment was intentionally not downloaded (rendered as plain text with "(skipped)"). */
+  skipped?: boolean;
 }
 
 /** Sanitize a filename for safe filesystem use. */
@@ -296,6 +299,10 @@ export function renderMarkdown(
     }
     const taskAttachments = attachmentMap.get(t.id) ?? [];
     for (const att of taskAttachments) {
+      if (att.skipped || !att.relativePath) {
+        lines.push(`    - ${att.displayName} (skipped)`);
+        continue;
+      }
       const encodedPath = att.relativePath
         .split("/")
         .map(encodeURIComponent)
@@ -326,12 +333,13 @@ export async function exportList(
   metadata = false,
   attachments = false,
   attachmentPath?: string,
-  inlineLink: InlineLinkMode = "auto"
+  inlineLink: InlineLinkMode = "auto",
+  skipCompletedAttachments = false
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
   const resolvedPath = outPath ?? `${list.displayName}.md`;
-  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink);
+  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, skipCompletedAttachments);
 }
 
 /**
@@ -347,7 +355,8 @@ export async function exportAllLists(
   metadata = false,
   attachments = false,
   attachmentPath?: string,
-  inlineLink: InlineLinkMode = "auto"
+  inlineLink: InlineLinkMode = "auto",
+  skipCompletedAttachments = false
 ): Promise<void> {
   if (orderingSourcePath) {
     let isDir = false;
@@ -373,7 +382,7 @@ export async function exportAllLists(
   for (const list of lists) {
     const filename = `${sanitizeFilename(list.displayName) || list.id}.md`;
     const outPath = path.join(outDir, filename);
-    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink);
+    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, skipCompletedAttachments);
   }
 }
 
@@ -384,7 +393,8 @@ async function exportResolvedList(
   metadata: boolean,
   attachments: boolean,
   attachmentPath: string | undefined,
-  inlineLink: InlineLinkMode
+  inlineLink: InlineLinkMode,
+  skipCompletedAttachments = false
 ): Promise<void> {
   console.error(`Exporting list: ${list.displayName}`);
 
@@ -420,12 +430,19 @@ async function exportResolvedList(
       const taskAttachments = await getTaskAttachments(list.id, task.id);
       if (taskAttachments.length === 0) continue;
 
-      if (!fs.existsSync(attachDir)) {
+      const skip = skipCompletedAttachments && task.status === "completed";
+
+      if (!skip && !fs.existsSync(attachDir)) {
         fs.mkdirSync(attachDir, { recursive: true });
       }
 
       const renderAttachments: RenderAttachment[] = [];
       for (const att of taskAttachments) {
+        if (skip) {
+          renderAttachments.push({ displayName: att.name, skipped: true });
+          continue;
+        }
+
         const diskName = attachmentDiskName(att.name, att.id);
         const diskPath = path.join(attachDir, diskName);
 

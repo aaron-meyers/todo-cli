@@ -50,6 +50,7 @@ todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-s
 | `--out <path>` | No | File path where the Markdown output is written. Defaults to `<list-name>.md` in the current directory. With `--all`, this is a directory (defaults to the current directory); per-list files are written as `<list-name>.md` inside it. |
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
+| `-s, --skip-completed-attachments` | No | When set together with `--attachments`, attachments belonging to **completed** tasks are not downloaded. Their display names are still rendered (without a link) with a ` (skipped)` suffix. Has no effect without `--attachments`. |
 | `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). When combined with `--all`, this **must** be a directory. |
 
 ### Global Options

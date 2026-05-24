@@ -578,6 +578,19 @@ describe("renderMarkdown with attachments", () => {
     expect(md).toContain("(out.attachments/att1-my%20file.pdf)");
   });
 
+  it("renders skipped attachments as plain text with '(skipped)'", () => {
+    const t = task("Task", "completed");
+    const attachmentMap = new Map<string, RenderAttachment[]>([
+      ["id-Task", [{ displayName: "report.pdf", skipped: true }]],
+    ]);
+    const md = renderMarkdown([t], undefined, false, attachmentMap);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [x] Task",
+      "    - report.pdf (skipped)",
+    ]);
+  });
+
   it("omits attachments when map is empty", () => {
     const md = renderMarkdown([task("Task")]);
     expect(md).toBe("- [ ] Task\n");
@@ -828,6 +841,38 @@ describe("exportList", () => {
       (c) => c[0] === "out.md"
     )?.[1] as string;
     expect(mdContent).toContain("[report.pdf](my-files/report-att1.pdf)");
+  });
+
+  it("skips attachments for completed tasks when --skip-completed-attachments is set", async () => {
+    const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+    mockedGetTasks.mockResolvedValue([
+      task("Incomplete"),
+      task("Done", "completed"),
+    ]);
+    mockedGetTaskAttachments.mockImplementation(async (_listId, taskId) => {
+      return [{ id: `att-${taskId}`, name: "report.pdf", contentType: "application/pdf", size: 1 }];
+    });
+    mockedDownloadAttachment.mockResolvedValue(Buffer.from("fake-pdf"));
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    // skipCompletedAttachments = true
+    await exportList("Shopping", "out.md", undefined, false, true, undefined, "auto", true);
+
+    // Should fetch metadata for both tasks (so we know what to render)
+    expect(mockedGetTaskAttachments).toHaveBeenCalledTimes(2);
+    // But only download the incomplete task's attachment
+    expect(mockedDownloadAttachment).toHaveBeenCalledTimes(1);
+    expect(mockedDownloadAttachment).toHaveBeenCalledWith("list-1", "id-Incomplete", "att-id-Incomplete");
+
+    const mdContent = mockedWriteFileSync.mock.calls.find(
+      (c) => c[0] === "out.md"
+    )?.[1] as string;
+    // Incomplete task gets a real link
+    expect(mdContent).toMatch(/- \[ \] Incomplete\n {4}- \[report\.pdf\]\(/);
+    // Completed task renders the name with "(skipped)" suffix and no link
+    expect(mdContent).toContain("- [x] Done");
+    expect(mdContent).toContain("    - report.pdf (skipped)");
+    expect(mdContent).not.toMatch(/\[report\.pdf\]\(out\.attachments\/report-att-id-Done\.pdf\)/);
   });
 });
 
