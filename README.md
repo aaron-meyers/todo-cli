@@ -53,7 +53,7 @@ todo export --all [-o <directory>] [-m] [-a] [--ordering-source <directory>]
 | `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`). With `--all`, a directory (defaults to current directory). |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links |
-| `-s, --skip-completed-attachments` | No | Skip downloading attachments for completed tasks; render them as plain text with a `(skipped)` suffix |
+| `--completed-attachments <mode>` | No | How to handle attachments on **completed** tasks: `default` (download alongside others), `skip` (don't download; render as plain text with a `(skipped)` suffix), or `subfolder` (download into a `completed/` subfolder under the attachments folder). |
 | `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. |
 
 ### Global Options

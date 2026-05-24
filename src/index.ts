@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { exportList, exportAllLists, formatListOutput, type InlineLinkMode } from "./export.js";
+import { exportList, exportAllLists, formatListOutput, type InlineLinkMode, type CompletedAttachmentsMode } from "./export.js";
 import { getTaskLists } from "./graph.js";
 
 const program = new Command();
@@ -49,9 +49,9 @@ program
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback; required to be a directory with --all)")
-  .option("-s, --skip-completed-attachments", "Skip downloading attachments for completed tasks (rendered as plain text with ' (skipped)' suffix)")
+  .option("--completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
   .option("--all", "Export every task list in the account")
-  .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean; skipCompletedAttachments?: boolean }) => {
+  .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean; completedAttachments?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
       const inlineLink = (opts.inlineLink ?? "auto") as InlineLinkMode;
@@ -59,18 +59,23 @@ program
         console.error(`Error: --inline-link must be auto, always, or never (got "${inlineLink}")`);
         process.exit(1);
       }
+      const completedAttachments = (opts.completedAttachments ?? "default") as CompletedAttachmentsMode;
+      if (!["default", "skip", "subfolder"].includes(completedAttachments)) {
+        console.error(`Error: --completed-attachments must be default, skip, or subfolder (got "${completedAttachments}")`);
+        process.exit(1);
+      }
       if (opts.all) {
         if (list) {
           console.error("Error: cannot specify a list argument together with --all");
           process.exit(1);
         }
-        await exportAllLists(opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, !!opts.skipCompletedAttachments);
+        await exportAllLists(opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, completedAttachments);
       } else {
         if (!list) {
           console.error("Error: missing required list argument (or use --all to export every list)");
           process.exit(1);
         }
-        await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, !!opts.skipCompletedAttachments);
+        await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, completedAttachments);
       }
     } catch (err: unknown) {
       handleError(err);

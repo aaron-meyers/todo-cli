@@ -844,7 +844,7 @@ describe("exportList", () => {
     expect(mdContent).toContain("[report.pdf](my-files/report-att1.pdf)");
   });
 
-  it("skips attachments for completed tasks when --skip-completed-attachments is set", async () => {
+  it("skips attachments for completed tasks when --completed-attachments=skip", async () => {
     const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
     mockedGetTasks.mockResolvedValue([
       task("Incomplete"),
@@ -856,8 +856,7 @@ describe("exportList", () => {
     mockedDownloadAttachment.mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
-    // skipCompletedAttachments = true
-    await exportList("Shopping", "out.md", undefined, false, true, undefined, "auto", true);
+    await exportList("Shopping", "out.md", undefined, false, true, undefined, "auto", "skip");
 
     // Should fetch metadata for both tasks (so we know what to render)
     expect(mockedGetTaskAttachments).toHaveBeenCalledTimes(2);
@@ -874,6 +873,45 @@ describe("exportList", () => {
     expect(mdContent).toContain("- [x] Done");
     expect(mdContent).toContain("    - report.pdf (skipped)");
     expect(mdContent).not.toMatch(/\[report\.pdf\]\(out\.attachments\/report-att-id-Done\.pdf\)/);
+  });
+
+  it("puts completed-task attachments in a 'completed' subfolder when --completed-attachments=subfolder", async () => {
+    const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+    const mockedMkdirSync = vi.mocked(fs.mkdirSync);
+    mockedGetTasks.mockResolvedValue([
+      task("Incomplete"),
+      task("Done", "completed"),
+    ]);
+    mockedGetTaskAttachments.mockImplementation(async (_listId, taskId) => {
+      return [{ id: `att-${taskId}`, name: "report.pdf", contentType: "application/pdf", size: 1 }];
+    });
+    mockedDownloadAttachment.mockResolvedValue(Buffer.from("fake-pdf"));
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    await exportList("Shopping", "out.md", undefined, false, true, undefined, "auto", "subfolder");
+
+    // Both attachments are downloaded
+    expect(mockedDownloadAttachment).toHaveBeenCalledTimes(2);
+
+    // Both attachment directories created
+    const mkdirPaths = mockedMkdirSync.mock.calls.map((c) => String(c[0]));
+    expect(mkdirPaths.some((p) => p.endsWith("out.attachments"))).toBe(true);
+    expect(mkdirPaths.some((p) => p.endsWith("out.attachments/completed"))).toBe(true);
+
+    // Each attachment file is written to its expected path
+    const writtenPaths = mockedWriteFileSync.mock.calls.map((c) => String(c[0]));
+    expect(writtenPaths.some((p) => p.endsWith("out.attachments/report-omplete.pdf"))).toBe(true);
+    expect(writtenPaths.some((p) => p.endsWith("out.attachments/completed/report-tidDone.pdf"))).toBe(true);
+
+    const mdContent = mockedWriteFileSync.mock.calls.find(
+      (c) => c[0] === "out.md"
+    )?.[1] as string;
+    // Markdown link for incomplete task uses the regular attachment folder
+    expect(mdContent).toContain("(out.attachments/report-omplete.pdf)");
+    // Completed task's link points to the completed subfolder
+    expect(mdContent).toContain("(out.attachments/completed/report-tidDone.pdf)");
+    // No "(skipped)" markers
+    expect(mdContent).not.toContain("(skipped)");
   });
 });
 

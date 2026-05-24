@@ -326,6 +326,8 @@ export function renderMarkdown(
 /**
  * Export the tasks from a Microsoft To-Do list to a Markdown file.
  */
+export type CompletedAttachmentsMode = "default" | "skip" | "subfolder";
+
 export async function exportList(
   identifier: string,
   outPath?: string,
@@ -334,12 +336,12 @@ export async function exportList(
   attachments = false,
   attachmentPath?: string,
   inlineLink: InlineLinkMode = "auto",
-  skipCompletedAttachments = false
+  completedAttachments: CompletedAttachmentsMode = "default"
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
   const resolvedPath = outPath ?? `${list.displayName}.md`;
-  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, skipCompletedAttachments);
+  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments);
 }
 
 /**
@@ -356,7 +358,7 @@ export async function exportAllLists(
   attachments = false,
   attachmentPath?: string,
   inlineLink: InlineLinkMode = "auto",
-  skipCompletedAttachments = false
+  completedAttachments: CompletedAttachmentsMode = "default"
 ): Promise<void> {
   if (orderingSourcePath) {
     let isDir = false;
@@ -382,7 +384,7 @@ export async function exportAllLists(
   for (const list of lists) {
     const filename = `${sanitizeFilename(list.displayName) || list.id}.md`;
     const outPath = path.join(outDir, filename);
-    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, skipCompletedAttachments);
+    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments);
   }
 }
 
@@ -394,7 +396,7 @@ async function exportResolvedList(
   attachments: boolean,
   attachmentPath: string | undefined,
   inlineLink: InlineLinkMode,
-  skipCompletedAttachments = false
+  completedAttachments: CompletedAttachmentsMode = "default"
 ): Promise<void> {
   console.error(`Exporting list: ${list.displayName}`);
 
@@ -430,10 +432,14 @@ async function exportResolvedList(
       const taskAttachments = await getTaskAttachments(list.id, task.id);
       if (taskAttachments.length === 0) continue;
 
-      const skip = skipCompletedAttachments && task.status === "completed";
+      const isCompleted = task.status === "completed";
+      const skip = completedAttachments === "skip" && isCompleted;
+      const useSubfolder = completedAttachments === "subfolder" && isCompleted;
+      const taskAttachDir = useSubfolder ? path.join(attachDir, "completed") : attachDir;
+      const taskAttachDirRel = useSubfolder ? `${attachDirRel}/completed` : attachDirRel;
 
-      if (!skip && !fs.existsSync(attachDir)) {
-        fs.mkdirSync(attachDir, { recursive: true });
+      if (!skip && !fs.existsSync(taskAttachDir)) {
+        fs.mkdirSync(taskAttachDir, { recursive: true });
       }
 
       const renderAttachments: RenderAttachment[] = [];
@@ -444,7 +450,7 @@ async function exportResolvedList(
         }
 
         const diskName = attachmentDiskName(att.name, att.id);
-        const diskPath = path.join(attachDir, diskName);
+        const diskPath = path.join(taskAttachDir, diskName);
 
         if (!fs.existsSync(diskPath)) {
           const content = await downloadAttachment(list.id, task.id, att.id);
@@ -453,7 +459,7 @@ async function exportResolvedList(
 
         renderAttachments.push({
           displayName: att.name,
-          relativePath: `${attachDirRel}/${diskName}`,
+          relativePath: `${taskAttachDirRel}/${diskName}`,
         });
       }
       attachmentMap.set(task.id, renderAttachments);
