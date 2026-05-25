@@ -329,8 +329,11 @@ export function renderMarkdown(
       lines.push(`    - [${att.displayName}](${encodedPath})`);
     }
     if (t.body) {
-      const markdown = turndown.turndown(t.body);
-      for (const line of markdown.split(/\n/)) {
+      const rendered =
+        t.bodyContentType === "html"
+          ? turndown.turndown(t.body)
+          : t.body;
+      for (const line of rendered.split(/\r?\n/)) {
         const trimmed = line.trim();
         if (trimmed) {
           lines.push(`    - ${trimmed}`);

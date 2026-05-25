@@ -37,6 +37,7 @@ export interface TodoTask {
   checklistItems: ChecklistItem[];
   linkedResources: LinkedResource[];
   body: string;
+  bodyContentType?: string;
   importance?: string; // "low" | "normal" | "high"
   createdDateTime?: string;
   completedDateTime?: string;
@@ -111,6 +112,7 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
         checklistItems,
         linkedResources,
         body: item.body?.content?.trim() ?? "",
+        bodyContentType: item.body?.contentType,
         importance: item.importance ?? undefined,
         createdDateTime: item.createdDateTime ?? undefined,
         completedDateTime: item.completedDateTime?.dateTime ?? undefined,

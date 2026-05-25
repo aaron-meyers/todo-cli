@@ -44,8 +44,8 @@ const mockedDownloadAttachment = vi.mocked(downloadAttachment);
 // Helpers
 // ---------------------------------------------------------------------------
 
-function task(title: string, status = "notStarted", checklistItems: TodoTask["checklistItems"] = [], body = "", linkedResources: TodoTask["linkedResources"] = []): TodoTask {
-  return { id: `id-${title}`, title, status, checklistItems, linkedResources, body };
+function task(title: string, status = "notStarted", checklistItems: TodoTask["checklistItems"] = [], body = "", linkedResources: TodoTask["linkedResources"] = [], bodyContentType: string = "html"): TodoTask {
+  return { id: `id-${title}`, title, status, checklistItems, linkedResources, body, bodyContentType };
 }
 
 const sampleLists: TodoTaskList[] = [
@@ -333,6 +333,18 @@ describe("renderMarkdown", () => {
       "- [ ] Task",
       "    - [ ] Subtask",
       "    - A note",
+    ]);
+  });
+
+  it("renders plain-text notes with CRLF line breaks as separate bullets", () => {
+    const t = task("Task", "notStarted", [], "Line 1\r\nLine 2\r\n\r\nLine 3", [], "text");
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Task",
+      "    - Line 1",
+      "    - Line 2",
+      "    - Line 3",
     ]);
   });
 
