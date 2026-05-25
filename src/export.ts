@@ -14,9 +14,28 @@ export interface RenderAttachment {
   skipped?: boolean;
 }
 
-/** Sanitize a filename for safe filesystem use. */
+/** Sanitize a filename for safe filesystem use.
+ *
+ * Also normalizes Unicode whitespace (e.g. the narrow no-break space U+202F
+ * that macOS inserts into formatted times like "1.37 PM") to a regular ASCII
+ * space so that on-disk filenames and URL-encoded links stay in sync.
+ */
 export function sanitizeFilename(name: string): string {
-  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/\.+$/, "");
+  return name
+    .replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, " ")
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+    .replace(/\.+$/, "");
+}
+
+/**
+ * URL-encode a single path segment for use in a Markdown link.
+ *
+ * Uses `encodeURIComponent` then decodes back a small set of characters that
+ * are safe in Markdown link destinations and that some renderers (notably
+ * Obsidian) refuse to follow when percent-encoded — currently just `,`.
+ */
+export function encodeAttachmentPathSegment(segment: string): string {
+  return encodeURIComponent(segment).replace(/%2C/g, ",");
 }
 
 /**
@@ -305,7 +324,7 @@ export function renderMarkdown(
       }
       const encodedPath = att.relativePath
         .split("/")
-        .map(encodeURIComponent)
+        .map(encodeAttachmentPathSegment)
         .join("/");
       lines.push(`    - [${att.displayName}](${encodedPath})`);
     }

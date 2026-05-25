@@ -500,6 +500,16 @@ describe("sanitizeFilename", () => {
   it("strips trailing dots", () => {
     expect(sanitizeFilename("file...")).toBe("file");
   });
+
+  it("normalizes the narrow no-break space (U+202F) to a regular space", () => {
+    expect(sanitizeFilename("Image from 12-22-25, 1.37\u202FPM.jpg")).toBe(
+      "Image from 12-22-25, 1.37 PM.jpg"
+    );
+  });
+
+  it("normalizes other unicode whitespace to a regular space", () => {
+    expect(sanitizeFilename("a\u00A0b\u2003c\u3000d.txt")).toBe("a b c d.txt");
+  });
 });
 
 describe("attachmentDiskName", () => {
@@ -577,6 +587,27 @@ describe("renderMarkdown with attachments", () => {
     ]);
     const md = renderMarkdown([t], undefined, false, attachmentMap);
     expect(md).toContain("(out.attachments/att1-my%20file.pdf)");
+  });
+
+  it("preserves commas in attachment paths (does not encode as %2C)", () => {
+    const t = task("Task");
+    const attachmentMap = new Map<string, RenderAttachment[]>([
+      [
+        "id-Task",
+        [
+          {
+            displayName: "Image from 12-22-25, 1.37 PM.jpg",
+            relativePath:
+              "list.attachments/Image from 12-22-25, 1.37 PM-ZGPMnxU.jpg",
+          },
+        ],
+      ],
+    ]);
+    const md = renderMarkdown([t], undefined, false, attachmentMap);
+    expect(md).toContain(
+      "(list.attachments/Image%20from%2012-22-25,%201.37%20PM-ZGPMnxU.jpg)"
+    );
+    expect(md).not.toContain("%2C");
   });
 
   it("renders skipped attachments as plain text with '(skipped)'", () => {
