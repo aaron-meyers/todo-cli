@@ -51,7 +51,7 @@ program
   .option("-c, --completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback; required to be a directory with --all)")
-  .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean; completedAttachments?: string }) => {
+  .action(async (list: string | undefined, opts: { all?: boolean; out?: string; metadata?: boolean; attachments?: boolean | string; completedAttachments?: string; inlineLink?: string; orderingSource?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
       const inlineLink = (opts.inlineLink ?? "auto") as InlineLinkMode;
