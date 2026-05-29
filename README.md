@@ -42,7 +42,7 @@ Print all task lists. Use `--verbose` to include list IDs.
 ### `todo export`
 
 ```
-todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [--inline-link <mode>] [-c <mode>] [--ordering-source <path>]
+todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <path>]
 todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <directory>]
 ```
 

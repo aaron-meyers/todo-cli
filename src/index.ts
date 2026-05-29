@@ -44,13 +44,13 @@ program
   .command("export")
   .description("Export a Microsoft To-Do task list (or all lists) to Markdown")
   .argument("[list]", "Task list ID or name (partial, case-insensitive); omit when using --all")
+  .option("--all", "Export every task list in the account")
   .option("-o, --out <path>", "Output Markdown file path (or directory, with --all); defaults to <list-name>.md (or current directory with --all)")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
+  .option("-c, --completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback; required to be a directory with --all)")
-  .option("-c, --completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
-  .option("--all", "Export every task list in the account")
   .action(async (list: string | undefined, opts: { out?: string; metadata?: boolean; attachments?: boolean | string; inlineLink?: string; orderingSource?: string; all?: boolean; completedAttachments?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
