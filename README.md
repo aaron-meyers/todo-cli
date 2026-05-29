@@ -42,8 +42,8 @@ Print all task lists. Use `--verbose` to include list IDs.
 ### `todo export`
 
 ```
-todo export <list-identifier> [-o <markdown-path>] [-m] [-a] [--ordering-source <path>]
-todo export --all [-o <directory>] [-m] [-a] [--ordering-source <directory>]
+todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [--inline-link <mode>] [-c <mode>] [--ordering-source <path>]
+todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <directory>]
 ```
 
 | Option | Required | Description |
@@ -52,8 +52,9 @@ todo export --all [-o <directory>] [-m] [-a] [--ordering-source <directory>]
 | `--all` | No | Export every task list. Disallows the `<list-identifier>` argument. `--out` becomes a directory (defaults to current directory) and `--ordering-source`, if provided, must be a directory. |
 | `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`). With `--all`, a directory (defaults to current directory). |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
-| `-a, --attachments` | No | Download task file attachments and include as Markdown links |
+| `-a, --attachments [path]` | No | Download task file attachments and include as Markdown links. Optionally specify a custom attachments folder path. |
 | `-c, --completed-attachments <mode>` | No | How to handle attachments on **completed** tasks: `default` (download alongside others), `skip` (don't download; render as plain text with a `(skipped)` suffix), or `subfolder` (download into a `completed/` subfolder under the attachments folder). |
+| `--inline-link <mode>` | No | Control inlining of a linked resource into the task title: `auto` (inline when the resource name matches the task title — default), `always`, or `never`. |
 | `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. |
 
 ### Global Options
@@ -83,6 +84,12 @@ todo export "Shopping" -m
 # Export with attachments downloaded to Shopping.attachments/
 todo export "Shopping" -a
 
+# Export with attachments downloaded to a custom folder
+todo export "Shopping" -a ./shopping-files
+
+# Always inline linked resources into the task title
+todo export "Shopping" --inline-link always
+
 # Export with ordering from a To-Do "Send a copy" file
 todo export Daily --ordering-source ~/To-Do/Daily-send.md
 
@@ -103,26 +110,31 @@ On first run you'll be prompted to sign in via the device-code flow — open the
 ### Output
 
 ```markdown
+---
+title: Shopping
+---
 - [ ] Buy groceries
     - [x] Milk
     - [ ] Eggs
     - [Grocery list](https://example.com) (OneNote)
-    - [receipt.pdf](Buy%20groceries.attachments/att1-receipt.pdf)
+    - [receipt.pdf](Buy%20groceries.attachments/receipt-2a9f1c7.pdf)
     - Check the pantry first
 - [x] [Send report](https://outlook.office.com/mail/read/123)
 - [ ] Book flight ⏫ 📅 2024-05-01
 ```
 
+If the output filename (without extension) differs from the list's display name, a YAML frontmatter block with a `title:` field holding the list name is prepended to the file. When the filename matches the list name, no frontmatter is added.
+
 Incomplete tasks appear first, followed by completed tasks. For each task:
 
 1. Subtasks (checklist items) appear as indented checkbox items
-2. Linked resources appear as indented Markdown links (or inlined in the title when the resource name matches the task title)
-3. Attachments appear as indented Markdown links to downloaded files (when `--attachments` is enabled)
+2. Linked resources appear as indented Markdown links (or inlined in the title when the resource name matches the task title, controlled with `--inline-link`)
+3. Attachments appear as indented Markdown links to downloaded files (when `--attachments` is enabled). With `--completed-attachments skip`, attachments on completed tasks are rendered as plain text with a `(skipped)` suffix instead.
 4. Notes appear as indented bullet items (HTML converted to Markdown)
 
-When `--attachments` is enabled, files are downloaded to a `<basename>.attachments/` folder next to the output Markdown file. Filenames are prefixed with the attachment ID to avoid collisions.
+When `--attachments` is enabled, files are downloaded by default to a `<basename>.attachments/` folder next to the output Markdown file (override the folder with `-a <path>`). Each filename is suffixed with the last 7 alphanumeric characters of the attachment ID to avoid collisions (e.g. `receipt-2a9f1c7.pdf`).
 
-When `--metadata` is enabled, task metadata is appended inline using Obsidian Tasks emoji format, in this order: `⏫` priority, `🔁` recurrence, `➕` created, `📅` due, `⏳` scheduled, `✅` completed.
+When `--metadata` is enabled, task metadata is appended inline using Obsidian Tasks emoji format: `⏫` priority, `🔁` recurrence, `➕` created, `📅` due, `⏳` scheduled, `✅` completed.
 
 ## Development
 
