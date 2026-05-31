@@ -13,6 +13,7 @@ A command-line tool that exports [Microsoft To-Do](https://to-do.microsoft.com/)
 - Optional task metadata in [Obsidian Tasks](https://publish.obsidian.md/tasks/) emoji format (dates, recurrence, priority)
 - Flexible list lookup — match by ID, exact name, or partial name (case-insensitive)
 - Global `--verbose` flag for detailed error diagnostics
+- Multiple account support via `--account <nickname>` (separate token caches)
 - OAuth 2.0 device-code flow with automatic token caching
 
 ## Prerequisites
@@ -62,6 +63,7 @@ todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <
 | Option | Description |
 |---|---|
 | `--verbose` | Show detailed error output (status codes, response bodies, stack traces) |
+| `--account <nickname>` | Account to use. `default` (or omitted) uses the standard token cache; any other nickname uses a separate `<nickname>-token-cache.json` cache |
 
 ### Examples
 
@@ -101,11 +103,16 @@ todo export --all -o ./exports --ordering-source ~/To-Do
 
 # Verbose mode for debugging
 todo --verbose export "Shopping" -a
+
+# Use a second account (cached separately)
+todo --account work list
 ```
 
 ### Authentication
 
 On first run you'll be prompted to sign in via the device-code flow — open the URL shown, enter the code, and sign in with your Microsoft account. Tokens are cached at `~/.todo-cli/token-cache.json` for subsequent runs.
+
+To sign in with more than one account, use `--account <nickname>`. Each non-default nickname is cached separately at `~/.todo-cli/<nickname>-token-cache.json`, so you can switch between accounts without re-authenticating each time. Nicknames may contain only letters, numbers, dots, dashes, and underscores.
 
 ### Output
 

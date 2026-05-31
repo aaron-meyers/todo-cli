@@ -8,6 +8,23 @@ const SCOPES = ["Tasks.ReadWrite"];
 const CLIENT_ID = "47100993-404c-4e79-989b-e2592594fbc6";
 const TENANT_ID = "common";
 
+let activeAccount = "default";
+
+/**
+ * Select which account's token cache to use. Pass undefined or "default"
+ * to use the standard token-cache.json; any other nickname uses
+ * <nickname>-token-cache.json.
+ */
+export function setAccount(nickname?: string): void {
+  const name = nickname?.trim() || "default";
+  if (name !== "default" && !/^[A-Za-z0-9._-]+$/.test(name)) {
+    throw new Error(
+      `Invalid account nickname "${name}": use only letters, numbers, dots, dashes, and underscores.`
+    );
+  }
+  activeAccount = name;
+}
+
 function getCacheDir(): string {
   const dir = path.join(os.homedir(), ".todo-cli");
   if (!fs.existsSync(dir)) {
@@ -17,7 +34,11 @@ function getCacheDir(): string {
 }
 
 function getCachePath(): string {
-  return path.join(getCacheDir(), "token-cache.json");
+  const filename =
+    activeAccount === "default"
+      ? "token-cache.json"
+      : `${activeAccount}-token-cache.json`;
+  return path.join(getCacheDir(), filename);
 }
 
 function loadCache(app: msal.PublicClientApplication): void {

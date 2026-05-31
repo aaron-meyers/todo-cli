@@ -17,7 +17,7 @@ No linter is configured.
 This is a CLI tool that exports Microsoft To-Do task lists to Markdown via the Microsoft Graph API.
 
 - **`src/index.ts`** — CLI entry point using Commander. Defines `todo list` and `todo export` commands. Global `--verbose` flag for detailed error diagnostics.
-- **`src/auth.ts`** — OAuth 2.0 device-code flow via MSAL. Caches tokens at `~/.todo-cli/token-cache.json`. Uses `Tasks.ReadWrite` scope (required for attachment access on personal accounts).
+- **`src/auth.ts`** — OAuth 2.0 device-code flow via MSAL. Caches tokens at `~/.todo-cli/token-cache.json` (or `~/.todo-cli/<nickname>-token-cache.json` when a non-default `--account` is selected via `setAccount()`). Uses `Tasks.ReadWrite` scope (required for attachment access on personal accounts).
 - **`src/graph.ts`** — Microsoft Graph API client. Defines the `TodoTask`, `TodoTaskList`, `ChecklistItem`, `LinkedResource`, `TaskAttachment`, and `RecurrencePattern` interfaces. Uses the `/lists/delta` endpoint (workaround for a Graph API bug that omits some lists). Fetches tasks with `$expand=checklistItems,linkedResources`. Separate functions for attachment metadata and content download.
 - **`src/export.ts`** — Core logic: list resolution, formatting, ordering-source parsing, metadata formatting, Markdown rendering (including HTML-to-Markdown conversion via Turndown), attachment download, and file writing. All pure-logic functions are exported individually for testing.
 

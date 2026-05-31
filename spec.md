@@ -20,6 +20,15 @@ On first run the CLI performs the **OAuth 2.0 device-code flow**:
 
 Subsequent runs reuse the cached token (or silently refresh it) until it expires. Delete the cache file to force re-authentication.
 
+### Multiple Accounts
+
+The global `--account <nickname>` option selects which account's token cache to use:
+
+- `default` (or omitting the option) uses `~/.todo-cli/token-cache.json` (the standard behavior).
+- Any other nickname uses a separate cache at `~/.todo-cli/<nickname>-token-cache.json`, allowing multiple accounts to stay signed in simultaneously.
+
+Nicknames may contain only letters, numbers, dots, dashes, and underscores; other values are rejected.
+
 ## Commands
 
 ### `todo list`
@@ -58,6 +67,7 @@ todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-s
 | Parameter | Description |
 |---|---|
 | `--verbose` | Show detailed error output including status codes, response bodies, request IDs, and stack traces. Useful for diagnosing Graph API errors. |
+| `--account <nickname>` | Select the account whose token cache is used. `default` (or omitted) uses `~/.todo-cli/token-cache.json`; any other nickname uses `~/.todo-cli/<nickname>-token-cache.json` (see *Multiple Accounts* above). |
 
 ### List Resolution
 

@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import { exportList, exportAllLists, formatListOutput, type InlineLinkMode, type CompletedAttachmentsMode } from "./export.js";
 import { getTaskLists } from "./graph.js";
+import { setAccount } from "./auth.js";
 
 const program = new Command();
 
@@ -10,7 +11,11 @@ program
   .name("todo")
   .description("CLI for Microsoft To-Do")
   .version("1.0.0")
-  .option("--verbose", "Show detailed output and full error information");
+  .option("--verbose", "Show detailed output and full error information")
+  .option("--account <nickname>", "Account to use; 'default' (or omitted) uses the standard token cache, any other nickname uses a separate cache", "default")
+  .hook("preAction", (thisCommand) => {
+    setAccount(thisCommand.opts().account as string | undefined);
+  });
 
 function isVerbose(): boolean {
   return program.opts().verbose === true;
