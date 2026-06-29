@@ -146,7 +146,7 @@ Each task is rendered as a checkbox line. Below the task line, indented child it
 3. **Attachments** — indented Markdown links to downloaded files in the format `- [fileName](relativePath)` (only when `--attachments` is enabled).
 4. **Notes** — the task body (HTML) converted to Markdown via Turndown, with each line rendered as an indented bullet item.
 
-**Linked resource inlining:** When a task has exactly one linked resource whose `displayName` matches the task title, the link is inlined in the task title (e.g., `- [ ] [Task title](url)`) instead of appearing as a separate indented item.
+**Linked resource inlining:** When a task has exactly one linked resource whose `displayName` matches the task title, the link is inlined in the task title (e.g., `- [ ] [Task title](url)`) instead of appearing as a separate indented item. The comparison ignores leading `Re:`, `Fw:`, and `Fwd:` prefixes on either side, so a resource named `Re: Task title` still matches a task named `Task title`.
 
 ```markdown
 - [ ] Buy groceries
