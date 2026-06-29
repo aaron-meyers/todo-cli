@@ -260,6 +260,19 @@ export function formatMetadata(task: TodoTask): string {
 export type InlineLinkMode = "auto" | "always" | "never";
 
 /**
+ * Strip leading "Re:", "Fw:", "Fwd:" prefixes (case-insensitive, possibly
+ * repeated) from a subject so it can be compared against a task name.
+ */
+export function stripReplyPrefix(subject: string): string {
+  let result = subject.trimStart();
+  const prefix = /^(re|fw|fwd)\s*:\s*/i;
+  while (prefix.test(result)) {
+    result = result.replace(prefix, "");
+  }
+  return result.trim();
+}
+
+/**
  * Render tasks to Markdown checkbox lines.
  * Incomplete tasks appear first, followed by completed tasks.
  * Subtasks are indented under their parent.
@@ -298,7 +311,7 @@ export function renderMarkdown(
       (inlineLink === "always" ||
         (inlineLink === "auto" &&
           t.linkedResources.length === 1 &&
-          t.linkedResources[0].displayName === titleText));
+          stripReplyPrefix(t.linkedResources[0].displayName) === stripReplyPrefix(titleText)));
 
     if (shouldInline) {
       lines.push(`- ${checkbox} [${titleText}](${t.linkedResources[0].webUrl})${meta}`);

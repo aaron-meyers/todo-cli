@@ -20,6 +20,7 @@ import {
   parseOrderingSource,
   applyOrdering,
   renderMarkdown,
+  stripReplyPrefix,
   formatListOutput,
   formatMetadata,
   formatRecurrence,
@@ -443,6 +444,15 @@ describe("renderMarkdown", () => {
     ]);
   });
 
+  it("inlines when displayName matches title after stripping Re/Fwd prefix", () => {
+    const t = task("Project sync", "notStarted", [], "", [
+      { displayName: "Re: Project sync", webUrl: "https://example.com", applicationName: "App" },
+    ]);
+    const md = renderMarkdown([t]);
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual(["- [ ] [Project sync](https://example.com)"]);
+  });
+
   it("does not inline when there are multiple linked resources even if one matches", () => {
     const t = task("Task", "notStarted", [], "", [
       { displayName: "Task", webUrl: "https://example.com/1", applicationName: "App1" },
@@ -493,6 +503,26 @@ describe("renderMarkdown", () => {
       "- [ ] Review PR",
       "    - [Review PR](https://github.com/pr/1) (GitHub)",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// stripReplyPrefix
+// ---------------------------------------------------------------------------
+
+describe("stripReplyPrefix", () => {
+  it("strips Re:, Fw:, Fwd: prefixes case-insensitively", () => {
+    expect(stripReplyPrefix("Re: hello")).toBe("hello");
+    expect(stripReplyPrefix("FW: hello")).toBe("hello");
+    expect(stripReplyPrefix("fwd: hello")).toBe("hello");
+  });
+
+  it("strips repeated prefixes", () => {
+    expect(stripReplyPrefix("Re: Fwd: hello")).toBe("hello");
+  });
+
+  it("leaves subjects without a prefix unchanged", () => {
+    expect(stripReplyPrefix("hello world")).toBe("hello world");
   });
 });
 
