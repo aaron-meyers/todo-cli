@@ -43,8 +43,8 @@ Print all task lists. Use `--verbose` to include list IDs.
 ### `todo export`
 
 ```
-todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <path>]
-todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <directory>]
+todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <path>] [-s <order>]
+todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <directory>] [-s <order>]
 ```
 
 | Option | Required | Description |
@@ -56,7 +56,8 @@ todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <
 | `-a, --attachments [path]` | No | Download task file attachments and include as Markdown links. Optionally specify a custom attachments folder path. |
 | `-c, --completed-attachments <mode>` | No | How to handle attachments on **completed** tasks: `default` (download alongside others), `skip` (don't download; render as plain text with a `(skipped)` suffix), or `subfolder` (download into a `completed/` subfolder under the attachments folder). |
 | `--inline-link <mode>` | No | Control inlining of a linked resource into the task title: `auto` (inline when the resource name matches the task title — default), `always`, or `never`. |
-| `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. |
+| `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. When combined with `--sort-order`, it breaks ties between equal sort keys. |
+| `-s, --sort-order <order>` (aliases `--sort`) | No | Sort tasks within each group (incomplete and completed are still grouped separately). One of `created-date` (`created`), `due-date` (`due`), `task-title` (`title`), or `priority` (`starred`). Sorting by title ignores emoji, using them only to break ties. Ties are broken by `--ordering-source` when provided. |
 
 ### Global Options
 
@@ -94,6 +95,15 @@ todo export "Shopping" --inline-link always
 
 # Export with ordering from a To-Do "Send a copy" file
 todo export Daily --ordering-source ~/To-Do/Daily-send.md
+
+# Sort tasks by due date (earliest first)
+todo export Daily --sort-order due-date
+
+# Sort tasks alphabetically by title (emoji ignored), using the short alias
+todo export Shopping -s title
+
+# Sort starred tasks first, using the To-Do list order to break ties
+todo export Daily -s starred --ordering-source ~/To-Do/Daily-send.md
 
 # Export every list to the current directory
 todo export --all

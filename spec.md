@@ -46,8 +46,8 @@ Print all task lists to stderr, one per line.
 ### `todo export`
 
 ```
-todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <path>]
-todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-source <directory>]
+todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <path>] [--sort-order <order>]
+todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-source <directory>] [--sort-order <order>]
 ```
 
 #### Parameters
@@ -60,7 +60,8 @@ todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-s
 | `-m, --metadata` | No | Include task metadata inline using Obsidian Tasks emoji format (see *Metadata* below). |
 | `-a, --attachments` | No | Download task file attachments and include as Markdown links (see *Attachments* below). |
 | `-c, --completed-attachments <mode>` | No | How to handle attachments on **completed** tasks when `--attachments` is set. One of: `default` (current behavior — download with all others), `skip` (do not download; render the name as plain text with a ` (skipped)` suffix), `subfolder` (download into a `completed/` subdirectory under the attachments folder; markdown links are adjusted accordingly). Has no effect without `--attachments`. |
-| `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). When combined with `--all`, this **must** be a directory. |
+| `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). When combined with `--all`, this **must** be a directory. When combined with `--sort-order`, it establishes the baseline order used to break ties (see *Sort Order* below). |
+| `-s, --sort-order <order>` | No | Sort tasks by a task property (see *Sort Order* below). Aliases: `--sort`. May be combined with `--ordering-source`. |
 
 ### Global Options
 
@@ -101,7 +102,7 @@ The CLI parses lines starting with `◯` to extract parent task titles (in order
 1. Tasks whose titles match an entry in the ordering source are sorted by their position in that file.
 2. Tasks not found in the ordering source are appended at the end in their original API order.
 
-Ordering is applied independently to the incomplete and completed groups (incomplete tasks still appear before completed tasks).
+Ordering is applied independently to the incomplete and completed groups (incomplete tasks still appear before completed tasks). When `--sort-order` is also specified, this ordering becomes the baseline that the sort is applied on top of, so it serves as the tie-breaker (see *Sort Order* below).
 
 ### Directory argument
 
@@ -114,6 +115,32 @@ If `--ordering-source` refers to a directory, the CLI searches it for a file mat
 
 The "emoji prefix" is any sequence of leading emoji characters (and surrounding whitespace) before the first regular character — for example, `📅 Daily` falls back to `Daily`. If no candidate file exists, the export proceeds without applying any ordering and a warning is printed to stderr.
 
+## Sort Order
+
+The `--sort-order` (alias `--sort`, short `-s`) option sorts tasks by a task property. Sorting is applied independently to the incomplete and completed groups (incomplete tasks still appear before completed tasks).
+
+Accepted values (canonical name and alias):
+
+| Value | Alias | Behavior |
+|---|---|---|
+| `created-date` | `created` | By task creation date, ascending. Tasks with no creation date sort last. |
+| `due-date` | `due` | By due date, ascending (earliest first). Tasks with no due date sort last. |
+| `task-title` | `title` | Alphabetically by title, ignoring emoji. |
+| `priority` | `starred` | Important ("starred") tasks first; all other tasks are treated as equal. |
+
+### Tie-breaking
+
+The sort is **stable**, so tasks with equal sort keys retain their relative order from the *baseline* order:
+
+- With `--ordering-source`, the baseline is the order from the ordering-source file (applied before sorting). This is the recommended combination, since it makes ties fall back to the user's custom order as shown in the To-Do app.
+- Without `--ordering-source`, the baseline is the raw order returned by the Graph API, which is arbitrary and does **not** reflect the To-Do app's display order.
+
+Combining `--sort-order` with `--ordering-source` is allowed: the ordering source is applied first to establish the baseline, then the stable sort is applied on top of it.
+
+### Ignoring emoji when sorting by title
+
+When sorting by `task-title`, emoji are ignored for comparison purposes. All emoji characters are extracted from the title (in their original order) and moved to the end of the string, so that they only affect ordering as a tie-breaker between titles that are otherwise identical once emoji are removed. For example, `🍎 Apple` sorts as `Apple` and `🍌 Banana` sorts as `Banana`.
+
 ## Exporting All Lists
 
 When `--all` is passed, the CLI exports every task list returned by the Graph API to its own Markdown file:
@@ -121,7 +148,7 @@ When `--all` is passed, the CLI exports every task list returned by the Graph AP
 - The `<list-identifier>` argument **must be omitted** (specifying both is an error).
 - `--out` is treated as a **directory** (defaults to the current working directory). It is created if missing. Each list is written to `<out-dir>/<list-name>.md`, with the list display name sanitized for filesystem safety.
 - `--ordering-source`, if provided, **must be a directory**. Per-list ordering files are resolved via the same lookup rules as the single-list case.
-- All other options (`--metadata`, `--attachments`, `--inline-link`) apply uniformly to every exported list.
+- All other options (`--metadata`, `--attachments`, `--inline-link`, `--sort-order`) apply uniformly to every exported list.
 
 ## Output Format
 

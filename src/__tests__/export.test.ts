@@ -20,6 +20,9 @@ import {
   parseOrderingSource,
   applyOrdering,
   renderMarkdown,
+  sortTasks,
+  normalizeSortOrder,
+  titleSortKey,
   stripReplyPrefix,
   formatListOutput,
   formatMetadata,
@@ -225,6 +228,115 @@ describe("applyOrdering", () => {
 });
 
 // ---------------------------------------------------------------------------
+// normalizeSortOrder
+// ---------------------------------------------------------------------------
+
+describe("normalizeSortOrder", () => {
+  it("accepts canonical values", () => {
+    expect(normalizeSortOrder("created-date")).toBe("created-date");
+    expect(normalizeSortOrder("due-date")).toBe("due-date");
+    expect(normalizeSortOrder("task-title")).toBe("task-title");
+    expect(normalizeSortOrder("priority")).toBe("priority");
+  });
+
+  it("accepts aliases", () => {
+    expect(normalizeSortOrder("created")).toBe("created-date");
+    expect(normalizeSortOrder("due")).toBe("due-date");
+    expect(normalizeSortOrder("title")).toBe("task-title");
+    expect(normalizeSortOrder("starred")).toBe("priority");
+  });
+
+  it("is case-insensitive", () => {
+    expect(normalizeSortOrder("Due")).toBe("due-date");
+    expect(normalizeSortOrder("PRIORITY")).toBe("priority");
+  });
+
+  it("returns undefined for unknown values", () => {
+    expect(normalizeSortOrder("bogus")).toBeUndefined();
+    expect(normalizeSortOrder("")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// titleSortKey
+// ---------------------------------------------------------------------------
+
+describe("titleSortKey", () => {
+  it("moves emoji to the end so they are tie-breakers only", () => {
+    expect(titleSortKey("🍎 Apple")).toBe("Apple🍎");
+    expect(titleSortKey("Banana 🍌")).toBe("Banana 🍌");
+  });
+
+  it("leaves emoji-free titles unchanged", () => {
+    expect(titleSortKey("Zebra")).toBe("Zebra");
+  });
+
+  it("keeps emoji in original order", () => {
+    expect(titleSortKey("🍎x🍌y")).toBe("xy🍎🍌");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sortTasks
+// ---------------------------------------------------------------------------
+
+describe("sortTasks", () => {
+  it("sorts by created date ascending, missing dates last", () => {
+    const tasks = [
+      { ...task("B"), createdDateTime: "2024-03-01T00:00:00Z" },
+      { ...task("NoDate") },
+      { ...task("A"), createdDateTime: "2024-01-01T00:00:00Z" },
+    ];
+    expect(sortTasks(tasks, "created-date").map((t) => t.title)).toEqual(["A", "B", "NoDate"]);
+  });
+
+  it("sorts by due date ascending, missing dates last", () => {
+    const tasks = [
+      { ...task("Later"), dueDateTime: "2024-12-31T00:00:00Z" },
+      { ...task("None") },
+      { ...task("Soon"), dueDateTime: "2024-02-01T00:00:00Z" },
+    ];
+    expect(sortTasks(tasks, "due-date").map((t) => t.title)).toEqual(["Soon", "Later", "None"]);
+  });
+
+  it("sorts by title ignoring emoji", () => {
+    const tasks = [task("🍌 Banana"), task("Apple"), task("🥕 Carrot")];
+    expect(sortTasks(tasks, "task-title").map((t) => t.title)).toEqual(["Apple", "🍌 Banana", "🥕 Carrot"]);
+  });
+
+  it("uses emoji only to break title ties", () => {
+    const tasks = [
+      { ...task("Task 🍎"), id: "apple" },
+      { ...task("Task 🍌"), id: "banana" },
+    ];
+    // Both share the base title "Task"; the emoji order breaks the tie.
+    const ordered = sortTasks(tasks, "task-title").map((t) => t.id);
+    expect(new Set(ordered)).toEqual(new Set(["apple", "banana"]));
+    expect(ordered).toEqual(["banana", "apple"]);
+  });
+
+  it("sorts important tasks first, keeping original order otherwise", () => {
+    const tasks = [
+      { ...task("Normal1") },
+      { ...task("Important1"), importance: "high" },
+      { ...task("Normal2") },
+      { ...task("Important2"), importance: "high" },
+    ];
+    expect(sortTasks(tasks, "priority").map((t) => t.title)).toEqual([
+      "Important1",
+      "Important2",
+      "Normal1",
+      "Normal2",
+    ]);
+  });
+
+  it("is stable for equal keys", () => {
+    const tasks = [task("C"), task("A"), task("B")];
+    expect(sortTasks(tasks, "priority").map((t) => t.title)).toEqual(["C", "A", "B"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // renderMarkdown
 // ---------------------------------------------------------------------------
 
@@ -284,6 +396,69 @@ describe("renderMarkdown", () => {
     const md = renderMarkdown(tasks, orderingContent);
     const lines = md.trimEnd().split("\n");
     expect(lines.map((l) => l.replace("- [ ] ", ""))).toEqual(["A", "B", "C"]);
+  });
+
+  it("applies sort order within incomplete and completed groups", () => {
+    const tasks = [
+      task("Charlie"),
+      task("Delta", "completed"),
+      task("Alpha"),
+      task("Bravo", "completed"),
+    ];
+    const md = renderMarkdown(tasks, undefined, false, new Map(), "auto", "task-title");
+    const lines = md.trimEnd().split("\n");
+    expect(lines).toEqual([
+      "- [ ] Alpha",
+      "- [ ] Charlie",
+      "- [x] Bravo",
+      "- [x] Delta",
+    ]);
+  });
+
+  it("uses the ordering source to break sort-order ties", () => {
+    // All three share the same (missing) due date, so the ordering source
+    // fully determines the result.
+    const tasks = [task("A"), task("B"), task("C")];
+    const md = renderMarkdown(tasks, "◯ C\n◯ B\n◯ A", false, new Map(), "auto", "due-date");
+    const lines = md.trimEnd().split("\n");
+    expect(lines.map((l) => l.replace("- [ ] ", ""))).toEqual(["C", "B", "A"]);
+  });
+
+  it("applies sort order ahead of the ordering source, which only breaks ties", () => {
+    const tasks = [
+      { ...task("Early"), dueDateTime: "2024-01-01T00:00:00Z" },
+      { ...task("TieB") },
+      { ...task("TieA") },
+    ];
+    // Ordering source lists TieA before TieB and puts Early last; the due-date
+    // sort still hoists Early, while TieA/TieB follow the ordering source.
+    const md = renderMarkdown(tasks, "◯ TieA\n◯ TieB\n◯ Early", false, new Map(), "auto", "due-date");
+    const lines = md.trimEnd().split("\n");
+    expect(lines.map((l) => l.replace("- [ ] ", ""))).toEqual(["Early", "TieA", "TieB"]);
+  });
+
+  it("breaks priority ties with the ordering source", () => {
+    const tasks = [
+      { ...task("NormalA") },
+      { ...task("StarB"), importance: "high" },
+      { ...task("NormalB") },
+      { ...task("StarA"), importance: "high" },
+    ];
+    const md = renderMarkdown(
+      tasks,
+      "◯ StarA\n◯ StarB\n◯ NormalB\n◯ NormalA",
+      false,
+      new Map(),
+      "auto",
+      "priority"
+    );
+    const lines = md.trimEnd().split("\n");
+    expect(lines.map((l) => l.replace("- [ ] ", ""))).toEqual([
+      "StarA",
+      "StarB",
+      "NormalB",
+      "NormalA",
+    ]);
   });
 
   it("ends with trailing newline", () => {

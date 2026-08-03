@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { Command } from "commander";
-import { exportList, exportAllLists, formatListOutput, type InlineLinkMode, type CompletedAttachmentsMode } from "./export.js";
+import { Command, Option } from "commander";
+import { exportList, exportAllLists, formatListOutput, normalizeSortOrder, type InlineLinkMode, type CompletedAttachmentsMode, type SortOrder } from "./export.js";
 import { getTaskLists } from "./graph.js";
 import { setAccount } from "./auth.js";
 
@@ -56,7 +56,9 @@ program
   .option("-c, --completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
   .option("--inline-link <mode>", "Inline linked resource in task title: auto|always|never (default: auto)")
   .option("--ordering-source <path>", "File or directory from To-Do 'Send a copy' to set task order (directory is searched for <list>.md/.txt, with emoji-prefix fallback; required to be a directory with --all)")
-  .action(async (list: string | undefined, opts: { all?: boolean; out?: string; metadata?: boolean; attachments?: boolean | string; completedAttachments?: string; inlineLink?: string; orderingSource?: string }) => {
+  .option("-s, --sort-order <order>", "Sort tasks within each group: created-date|due-date|task-title|priority (aliases: created, due, title, starred); ties are broken by --ordering-source when provided")
+  .addOption(new Option("--sort <order>", "Alias for --sort-order").hideHelp())
+  .action(async (list: string | undefined, opts: { all?: boolean; out?: string; metadata?: boolean; attachments?: boolean | string; completedAttachments?: string; inlineLink?: string; orderingSource?: string; sortOrder?: string; sort?: string }) => {
     try {
       const attachPath = typeof opts.attachments === "string" ? opts.attachments : undefined;
       const inlineLink = (opts.inlineLink ?? "auto") as InlineLinkMode;
@@ -69,18 +71,27 @@ program
         console.error(`Error: --completed-attachments must be default, skip, or subfolder (got "${completedAttachments}")`);
         process.exit(1);
       }
+      let sortOrder: SortOrder | undefined;
+      const sortValue = opts.sortOrder ?? opts.sort;
+      if (sortValue !== undefined) {
+        sortOrder = normalizeSortOrder(sortValue);
+        if (!sortOrder) {
+          console.error(`Error: --sort-order must be created-date, due-date, task-title, or priority (got "${sortValue}")`);
+          process.exit(1);
+        }
+      }
       if (opts.all) {
         if (list) {
           console.error("Error: cannot specify a list argument together with --all");
           process.exit(1);
         }
-        await exportAllLists(opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, completedAttachments);
+        await exportAllLists(opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, completedAttachments, sortOrder);
       } else {
         if (!list) {
           console.error("Error: missing required list argument (or use --all to export every list)");
           process.exit(1);
         }
-        await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, completedAttachments);
+        await exportList(list, opts.out, opts.orderingSource, opts.metadata, !!opts.attachments, attachPath, inlineLink, completedAttachments, sortOrder);
       }
     } catch (err: unknown) {
       handleError(err);

@@ -203,6 +203,73 @@ export function applyOrdering(tasks: TodoTask[], orderedTitles: string[]): TodoT
   return [...matched.map((m) => m.task), ...unmatched];
 }
 
+/** Supported values for the `--sort-order` option. */
+export type SortOrder = "created-date" | "due-date" | "task-title" | "priority";
+
+/**
+ * Normalize a user-supplied `--sort-order` value (including aliases) to a
+ * canonical {@link SortOrder}, or `undefined` if it is not recognized.
+ */
+export function normalizeSortOrder(value: string): SortOrder | undefined {
+  const map: Record<string, SortOrder> = {
+    "created-date": "created-date",
+    created: "created-date",
+    "due-date": "due-date",
+    due: "due-date",
+    "task-title": "task-title",
+    title: "task-title",
+    priority: "priority",
+    starred: "priority",
+  };
+  return map[value.toLowerCase()];
+}
+
+/**
+ * Build a sort key for a task title with emoji ignored.
+ *
+ * All emoji characters are extracted (in their original order) and moved to the
+ * end of the string, so that they only affect ordering as a tie-breaker between
+ * titles that are otherwise identical once emoji are removed.
+ */
+export function titleSortKey(title: string): string {
+  const emojiRegex = /[\p{Extended_Pictographic}\uFE0F\u200D\p{Emoji_Modifier}]/gu;
+  const emoji = title.match(emojiRegex)?.join("") ?? "";
+  const withoutEmoji = title.replace(emojiRegex, "");
+  return `${withoutEmoji}${emoji}`.replace(/\s+/g, " ").trim();
+}
+
+/** Compare two optional ISO date strings, sorting missing values to the end. */
+function compareOptionalDate(a: string | undefined, b: string | undefined): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * Sort tasks according to the given {@link SortOrder}. The sort is stable, so
+ * tasks that compare equal keep their original relative order.
+ */
+export function sortTasks(tasks: TodoTask[], sortOrder: SortOrder): TodoTask[] {
+  const sorted = [...tasks];
+  switch (sortOrder) {
+    case "created-date":
+      sorted.sort((a, b) => compareOptionalDate(a.createdDateTime, b.createdDateTime));
+      break;
+    case "due-date":
+      sorted.sort((a, b) => compareOptionalDate(a.dueDateTime, b.dueDateTime));
+      break;
+    case "task-title":
+      sorted.sort((a, b) => titleSortKey(a.title).localeCompare(titleSortKey(b.title)));
+      break;
+    case "priority":
+      // Important ("starred") tasks first; everything else keeps original order.
+      sorted.sort((a, b) => (a.importance === "high" ? 0 : 1) - (b.importance === "high" ? 0 : 1));
+      break;
+  }
+  return sorted;
+}
+
 /** Extract just the date portion (YYYY-MM-DD) from an ISO datetime string. */
 export function toDateOnly(dateTime: string): string {
   return dateTime.slice(0, 10);
@@ -276,13 +343,18 @@ export function stripReplyPrefix(subject: string): string {
  * Render tasks to Markdown checkbox lines.
  * Incomplete tasks appear first, followed by completed tasks.
  * Subtasks are indented under their parent.
+ *
+ * When `orderingSource` is provided it establishes the baseline order. When
+ * `sortOrder` is also provided, the (stable) sort runs on top of that baseline,
+ * so the ordering source acts as the tie-breaker for equal sort keys.
  */
 export function renderMarkdown(
   tasks: TodoTask[],
   orderingSource?: string,
   metadata = false,
   attachmentMap: Map<string, RenderAttachment[]> = new Map(),
-  inlineLink: InlineLinkMode = "auto"
+  inlineLink: InlineLinkMode = "auto",
+  sortOrder?: SortOrder
 ): string {
   const incomplete = tasks.filter((t) => t.status !== "completed");
   const completed = tasks.filter((t) => t.status === "completed");
@@ -292,8 +364,13 @@ export function renderMarkdown(
 
   if (orderingSource) {
     const orderedTitles = parseOrderingSource(orderingSource);
-    orderedIncomplete = applyOrdering(incomplete, orderedTitles);
-    orderedCompleted = applyOrdering(completed, orderedTitles);
+    orderedIncomplete = applyOrdering(orderedIncomplete, orderedTitles);
+    orderedCompleted = applyOrdering(orderedCompleted, orderedTitles);
+  }
+
+  if (sortOrder) {
+    orderedIncomplete = sortTasks(orderedIncomplete, sortOrder);
+    orderedCompleted = sortTasks(orderedCompleted, sortOrder);
   }
 
   const ordered = [...orderedIncomplete, ...orderedCompleted];
@@ -371,12 +448,13 @@ export async function exportList(
   attachments = false,
   attachmentPath?: string,
   inlineLink: InlineLinkMode = "auto",
-  completedAttachments: CompletedAttachmentsMode = "default"
+  completedAttachments: CompletedAttachmentsMode = "default",
+  sortOrder?: SortOrder
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
   const resolvedPath = outPath ?? `${list.displayName}.md`;
-  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments);
+  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder);
 }
 
 /**
@@ -393,7 +471,8 @@ export async function exportAllLists(
   attachments = false,
   attachmentPath?: string,
   inlineLink: InlineLinkMode = "auto",
-  completedAttachments: CompletedAttachmentsMode = "default"
+  completedAttachments: CompletedAttachmentsMode = "default",
+  sortOrder?: SortOrder
 ): Promise<void> {
   if (orderingSourcePath) {
     let isDir = false;
@@ -419,7 +498,7 @@ export async function exportAllLists(
   for (const list of lists) {
     const filename = `${sanitizeFilename(list.displayName) || list.id}.md`;
     const outPath = path.join(outDir, filename);
-    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments);
+    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder);
   }
 }
 
@@ -431,7 +510,8 @@ async function exportResolvedList(
   attachments: boolean,
   attachmentPath: string | undefined,
   inlineLink: InlineLinkMode,
-  completedAttachments: CompletedAttachmentsMode = "default"
+  completedAttachments: CompletedAttachmentsMode = "default",
+  sortOrder?: SortOrder
 ): Promise<void> {
   console.error(`Exporting list: ${list.displayName}`);
 
@@ -501,7 +581,7 @@ async function exportResolvedList(
     }
   }
 
-  const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap, inlineLink);
+  const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap, inlineLink, sortOrder);
   const filenameBase = path.basename(resolvedPath, path.extname(resolvedPath));
   const frontmatter = filenameBase === list.displayName
     ? ""
