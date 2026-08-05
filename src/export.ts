@@ -533,8 +533,12 @@ async function exportResolvedList(
   }
 
   const attachmentMap = new Map<string, RenderAttachment[]>();
+  let attachmentSummary: string | undefined;
 
   if (attachments) {
+    let downloaded = 0;
+    let cached = 0;
+    let skipped = 0;
     const defaultDir = path.basename(resolvedPath, path.extname(resolvedPath)) + ".attachments";
     const attachDir = attachmentPath
       ? path.resolve(path.dirname(resolvedPath), attachmentPath)
@@ -560,6 +564,7 @@ async function exportResolvedList(
       const renderAttachments: RenderAttachment[] = [];
       for (const att of taskAttachments) {
         if (skip) {
+          skipped++;
           renderAttachments.push({ displayName: att.name, skipped: true });
           continue;
         }
@@ -570,6 +575,9 @@ async function exportResolvedList(
         if (!fs.existsSync(diskPath)) {
           const content = await downloadAttachment(list.id, task.id, att.id);
           fs.writeFileSync(diskPath, content);
+          downloaded++;
+        } else {
+          cached++;
         }
 
         renderAttachments.push({
@@ -579,6 +587,9 @@ async function exportResolvedList(
       }
       attachmentMap.set(task.id, renderAttachments);
     }
+
+    attachmentSummary =
+      `  including ${downloaded} attachment(s) downloaded, ${cached} cached, ${skipped} skipped in ${attachDir}`;
   }
 
   const markdown = renderMarkdown(tasks, orderingSource, metadata, attachmentMap, inlineLink, sortOrder);
@@ -591,6 +602,9 @@ async function exportResolvedList(
   console.error(
     `Wrote ${tasks.length} task(s) to ${resolvedPath}`
   );
+  if (attachmentSummary) {
+    console.error(attachmentSummary);
+  }
 }
 
 /**
