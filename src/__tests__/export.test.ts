@@ -1011,7 +1011,7 @@ describe("exportList", () => {
 
     await exportList("Shopping", "out.md");
 
-    expect(mockedGetTasks).toHaveBeenCalledWith("list-1");
+    expect(mockedGetTasks).toHaveBeenCalledWith("list-1", "all");
     expect(mockedWriteFileSync).toHaveBeenCalledOnce();
     const content = mockedWriteFileSync.mock.calls[0][1] as string;
     expect(content).toContain("- [ ] Task 1");
@@ -1029,6 +1029,7 @@ describe("exportList", () => {
 
     await exportList("Shopping", "out.md", undefined, false, false, undefined, "auto", "default", undefined, filterStatus);
 
+    expect(mockedGetTasks).toHaveBeenCalledWith("list-1", filterStatus);
     const content = mockedWriteFileSync.mock.calls[0][1] as string;
     expect(content).toContain(included);
     expect(content).not.toContain(excluded);

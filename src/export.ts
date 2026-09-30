@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import TurndownService from "turndown";
-import { getTaskLists, getTasks, getTaskAttachments, downloadAttachment, type TodoTaskList, type TodoTask, type RecurrencePattern } from "./graph.js";
+import { getTaskLists, getTasks, getTaskAttachments, downloadAttachment, type TodoTaskList, type TodoTask, type RecurrencePattern, type StatusFilter } from "./graph.js";
 
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
 
@@ -447,7 +447,7 @@ export function renderMarkdown(
  * Export the tasks from a Microsoft To-Do list to a Markdown file.
  */
 export type CompletedAttachmentsMode = "default" | "skip" | "subfolder";
-export type StatusFilter = "all" | "incomplete" | "completed";
+export type { StatusFilter } from "./graph.js";
 
 export async function exportList(
   identifier: string,
@@ -541,7 +541,7 @@ async function exportResolvedList(
 ): Promise<void> {
   console.error(`Exporting list: ${list.displayName}`);
 
-  const allTasks = await getTasks(list.id);
+  const allTasks = await getTasks(list.id, filterStatus);
   const tasks = allTasks.filter((task) => {
     if (filterStatus === "completed") return task.status === "completed";
     if (filterStatus === "incomplete") return task.status !== "completed";

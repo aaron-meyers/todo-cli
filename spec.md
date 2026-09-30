@@ -155,6 +155,12 @@ When `--all` is passed, the CLI exports every task list returned by the Graph AP
 
 The generated Markdown file contains one line per exported task. With the default `--filter-status all`, incomplete tasks appear first, followed by completed tasks, preserving the API return order within each group. `--filter-status incomplete` exports only tasks whose status is not `completed`; `--filter-status completed` exports only tasks whose status is `completed`.
 
+### API-side filtering
+
+When `--filter-status` is `incomplete` or `completed`, the CLI applies the equivalent Microsoft Graph `$filter` expression to the task-list request so excluded tasks are not downloaded. The CLI also retains the equivalent local filter as a defensive check.
+
+Future filtering options should likewise be pushed into the Graph API request whenever the endpoint supports equivalent semantics. Client-side filtering is used when Graph cannot express the filter, and may be retained as a safeguard when server-side filtering is available.
+
 ### YAML Frontmatter
 
 When the output filename (without extension) does **not** match the list's original display name — for example, when the name was sanitized for filesystem safety during `--all` export, or when the user supplied a different `--out` path — the file begins with a YAML frontmatter block containing the original list name:

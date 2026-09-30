@@ -6,6 +6,8 @@ export interface TodoTaskList {
   displayName: string;
 }
 
+export type StatusFilter = "all" | "incomplete" | "completed";
+
 export interface ChecklistItem {
   displayName: string;
   isChecked: boolean;
@@ -81,13 +83,26 @@ export async function getTaskLists(): Promise<TodoTaskList[]> {
   return lists;
 }
 
-/** Fetch all tasks (with checklist items) in a given task list. */
-export async function getTasks(listId: string): Promise<TodoTask[]> {
+/** Fetch tasks (with checklist items) in a given task list. */
+export async function getTasks(
+  listId: string,
+  filterStatus: StatusFilter = "all"
+): Promise<TodoTask[]> {
   const token = await getAccessToken();
   const client = createClient(token);
 
   const tasks: TodoTask[] = [];
-  let url: string | null | undefined = `/me/todo/lists/${listId}/tasks?$expand=checklistItems,linkedResources`;
+  const statusExpression =
+    filterStatus === "completed"
+      ? "status eq 'completed'"
+      : filterStatus === "incomplete"
+        ? "status ne 'completed'"
+        : undefined;
+  const filterQuery = statusExpression
+    ? `$filter=${encodeURIComponent(statusExpression)}&`
+    : "";
+  let url: string | null | undefined =
+    `/me/todo/lists/${listId}/tasks?${filterQuery}$expand=checklistItems,linkedResources`;
 
   while (url) {
     const response = await client.api(url).get();
