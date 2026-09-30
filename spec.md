@@ -46,8 +46,8 @@ Print all task lists to stderr, one per line.
 ### `todo export`
 
 ```
-todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <path>] [--sort-order <order>]
-todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-source <directory>] [--sort-order <order>]
+todo export <list-identifier> [--out <markdown-path>] [--metadata] [--attachments] [--ordering-source <path>] [--sort-order <order>] [--filter-status <status>]
+todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-source <directory>] [--sort-order <order>] [--filter-status <status>]
 ```
 
 #### Parameters
@@ -62,6 +62,7 @@ todo export --all [--out <directory>] [--metadata] [--attachments] [--ordering-s
 | `-c, --completed-attachments <mode>` | No | How to handle attachments on **completed** tasks when `--attachments` is set. One of: `default` (current behavior — download with all others), `skip` (do not download; render the name as plain text with a ` (skipped)` suffix), `subfolder` (download into a `completed/` subdirectory under the attachments folder; markdown links are adjusted accordingly). Has no effect without `--attachments`. |
 | `--ordering-source <path>` | No | Path to a text file (or a directory of such files) produced by the To-Do app's "Send a copy" function. When provided, tasks are reordered to match the order in this file (see *Ordering Source* below). When combined with `--all`, this **must** be a directory. When combined with `--sort-order`, it establishes the baseline order used to break ties (see *Sort Order* below). |
 | `-s, --sort-order <order>` | No | Sort tasks by a task property (see *Sort Order* below). Aliases: `--sort`. May be combined with `--ordering-source`. |
+| `--filter-status <status>` | No | Filter exported tasks by status. Accepted values: `all` (default), `incomplete`, or `completed`. A task is completed only when its Graph API status is `completed`; all other statuses are incomplete. |
 
 ### Global Options
 
@@ -152,7 +153,7 @@ When `--all` is passed, the CLI exports every task list returned by the Graph AP
 
 ## Output Format
 
-The generated Markdown file contains one line per task. Incomplete tasks appear first, followed by completed tasks, preserving the API return order within each group.
+The generated Markdown file contains one line per exported task. With the default `--filter-status all`, incomplete tasks appear first, followed by completed tasks, preserving the API return order within each group. `--filter-status incomplete` exports only tasks whose status is not `completed`; `--filter-status completed` exports only tasks whose status is `completed`.
 
 ### YAML Frontmatter
 

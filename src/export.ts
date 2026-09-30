@@ -442,6 +442,7 @@ export function renderMarkdown(
  * Export the tasks from a Microsoft To-Do list to a Markdown file.
  */
 export type CompletedAttachmentsMode = "default" | "skip" | "subfolder";
+export type StatusFilter = "all" | "incomplete" | "completed";
 
 export async function exportList(
   identifier: string,
@@ -452,7 +453,8 @@ export async function exportList(
   attachmentPath?: string,
   inlineLink: InlineLinkMode = "auto",
   completedAttachments: CompletedAttachmentsMode = "default",
-  sortOrder?: SortOrder
+  sortOrder?: SortOrder,
+  filterStatus: StatusFilter = "all"
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
@@ -471,7 +473,7 @@ export async function exportList(
     }
     resolvedPath = path.join(resolvedPath, filename);
   }
-  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder);
+  await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder, filterStatus);
 }
 
 /**
@@ -489,7 +491,8 @@ export async function exportAllLists(
   attachmentPath?: string,
   inlineLink: InlineLinkMode = "auto",
   completedAttachments: CompletedAttachmentsMode = "default",
-  sortOrder?: SortOrder
+  sortOrder?: SortOrder,
+  filterStatus: StatusFilter = "all"
 ): Promise<void> {
   if (orderingSourcePath) {
     let isDir = false;
@@ -515,7 +518,7 @@ export async function exportAllLists(
   for (const list of lists) {
     const filename = `${sanitizeFilename(list.displayName) || list.id}.md`;
     const outPath = path.join(outDir, filename);
-    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder);
+    await exportResolvedList(list, outPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder, filterStatus);
   }
 }
 
@@ -528,11 +531,17 @@ async function exportResolvedList(
   attachmentPath: string | undefined,
   inlineLink: InlineLinkMode,
   completedAttachments: CompletedAttachmentsMode = "default",
-  sortOrder?: SortOrder
+  sortOrder?: SortOrder,
+  filterStatus: StatusFilter = "all"
 ): Promise<void> {
   console.error(`Exporting list: ${list.displayName}`);
 
-  const tasks = await getTasks(list.id);
+  const allTasks = await getTasks(list.id);
+  const tasks = allTasks.filter((task) => {
+    if (filterStatus === "completed") return task.status === "completed";
+    if (filterStatus === "incomplete") return task.status !== "completed";
+    return true;
+  });
 
   let orderingSource: string | undefined;
   if (orderingSourcePath) {

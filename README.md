@@ -43,8 +43,8 @@ Print all task lists. Use `--verbose` to include list IDs.
 ### `todo export`
 
 ```
-todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <path>] [-s <order>]
-todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <directory>] [-s <order>]
+todo export <list-identifier> [-o <markdown-path>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <path>] [-s <order>] [--filter-status <status>]
+todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <mode>] [--ordering-source <directory>] [-s <order>] [--filter-status <status>]
 ```
 
 | Option | Required | Description |
@@ -58,6 +58,7 @@ todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <
 | `--inline-link <mode>` | No | Control inlining of a linked resource into the task title: `auto` (inline when the resource name matches the task title — default), `always`, or `never`. |
 | `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. When combined with `--sort-order`, it breaks ties between equal sort keys. |
 | `-s, --sort-order <order>` (aliases `--sort`) | No | Sort tasks within each group (incomplete and completed are still grouped separately). One of `created-date` (`created`), `due-date` (`due`), `task-title` (`title`), or `priority` (`starred`). Sorting by title ignores emoji, using them only to break ties. Ties are broken by `--ordering-source` when provided. |
+| `--filter-status <status>` | No | Export `all`, `incomplete`, or `completed` tasks. Defaults to `all`. |
 
 ### Global Options
 
@@ -142,7 +143,7 @@ title: Shopping
 
 If the output filename (without extension) differs from the list's display name, a YAML frontmatter block with a `title:` field holding the list name is prepended to the file. When the filename matches the list name, no frontmatter is added.
 
-Incomplete tasks appear first, followed by completed tasks. For each task:
+By default, incomplete tasks appear first, followed by completed tasks. Use `--filter-status incomplete` or `--filter-status completed` to export only one group. For each task:
 
 1. Subtasks (checklist items) appear as indented checkbox items
 2. Linked resources appear as indented Markdown links (or inlined in the title when the resource name matches the task title, controlled with `--inline-link`)

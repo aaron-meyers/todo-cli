@@ -1018,6 +1018,35 @@ describe("exportList", () => {
     expect(content).toContain("- [x] Task 2");
   });
 
+  it.each([
+    ["incomplete", "- [ ] Task 1", "- [x] Task 2"],
+    ["completed", "- [x] Task 2", "- [ ] Task 1"],
+  ] as const)("filters exported tasks to %s tasks", async (filterStatus, included, excluded) => {
+    mockedGetTasks.mockResolvedValue([
+      task("Task 1"),
+      task("Task 2", "completed"),
+    ]);
+
+    await exportList("Shopping", "out.md", undefined, false, false, undefined, "auto", "default", undefined, filterStatus);
+
+    const content = mockedWriteFileSync.mock.calls[0][1] as string;
+    expect(content).toContain(included);
+    expect(content).not.toContain(excluded);
+  });
+
+  it("does not fetch attachments for tasks excluded by the status filter", async () => {
+    mockedGetTasks.mockResolvedValue([
+      task("Task 1"),
+      task("Task 2", "completed"),
+    ]);
+    mockedGetTaskAttachments.mockResolvedValue([]);
+
+    await exportList("Shopping", "out.md", undefined, false, true, undefined, "auto", "default", undefined, "completed");
+
+    expect(mockedGetTaskAttachments).toHaveBeenCalledOnce();
+    expect(mockedGetTaskAttachments).toHaveBeenCalledWith("list-1", "id-Task 2");
+  });
+
   it("defaults output path to list name + .md", async () => {
     mockedGetTasks.mockResolvedValue([task("A")]);
 
