@@ -596,6 +596,15 @@ describe("renderMarkdown", () => {
     expect(md).toBe("- [ ] [Review PR](https://github.com/pr/1)\n");
   });
 
+  it("uses the task title when a linked resource has no display name", () => {
+    const t = task("Flagged email", "notStarted", [], "", [
+      { webUrl: "https://outlook.office.com/mail/item", applicationName: "Outlook" },
+    ]);
+    expect(renderMarkdown([t])).toBe(
+      "- [ ] [Flagged email](https://outlook.office.com/mail/item)\n"
+    );
+  });
+
   it("inlines link with metadata", () => {
     const t: TodoTask = {
       ...task("Review PR", "notStarted", [], "", [

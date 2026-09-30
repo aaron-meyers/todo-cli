@@ -18,9 +18,9 @@ export interface RecurrencePattern {
 }
 
 export interface LinkedResource {
-  displayName: string;
+  displayName?: string;
   webUrl: string;
-  applicationName: string;
+  applicationName?: string;
 }
 
 export interface TaskAttachment {
@@ -100,10 +100,10 @@ export async function getTasks(listId: string): Promise<TodoTask[]> {
       );
       const linkedResources: LinkedResource[] = (item.linkedResources ?? [])
         .filter((lr: { webUrl?: string }) => lr.webUrl)
-        .map((lr: { displayName: string; webUrl: string; applicationName: string }) => ({
-          displayName: lr.displayName,
+        .map((lr: { displayName?: string; webUrl: string; applicationName?: string }) => ({
+          displayName: lr.displayName ?? item.title,
           webUrl: lr.webUrl,
-          applicationName: lr.applicationName,
+          applicationName: lr.applicationName ?? "",
         }));
       tasks.push({
         id: item.id,

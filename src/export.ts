@@ -381,6 +381,7 @@ export function renderMarkdown(
     const metaStr = metadata ? formatMetadata(t) : "";
     const meta = metaStr ? ` ${metaStr}` : "";
     const titleText = t.title.trimEnd();
+    const firstResourceName = t.linkedResources[0]?.displayName || titleText;
 
     // Determine whether to inline a linked resource in the title
     const shouldInline =
@@ -388,7 +389,7 @@ export function renderMarkdown(
       (inlineLink === "always" ||
         (inlineLink === "auto" &&
           t.linkedResources.length === 1 &&
-          stripReplyPrefix(t.linkedResources[0].displayName) === stripReplyPrefix(titleText)));
+          stripReplyPrefix(firstResourceName) === stripReplyPrefix(titleText)));
 
     if (shouldInline) {
       lines.push(`- ${checkbox} [${titleText}](${t.linkedResources[0].webUrl})${meta}`);
@@ -404,7 +405,9 @@ export function renderMarkdown(
       ? t.linkedResources.slice(1)
       : t.linkedResources;
     for (const lr of remainingResources) {
-      lines.push(`    - [${lr.displayName}](${lr.webUrl}) (${lr.applicationName})`);
+      const resourceName = lr.displayName || titleText;
+      const application = lr.applicationName ? ` (${lr.applicationName})` : "";
+      lines.push(`    - [${resourceName}](${lr.webUrl})${application}`);
     }
     const taskAttachments = attachmentMap.get(t.id) ?? [];
     for (const att of taskAttachments) {
