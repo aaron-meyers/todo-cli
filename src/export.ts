@@ -239,11 +239,16 @@ export function titleSortKey(title: string): string {
 }
 
 /** Compare two optional ISO date strings, sorting missing values to the end. */
-function compareOptionalDate(a: string | undefined, b: string | undefined): number {
+function compareOptionalDate(
+  a: string | undefined,
+  b: string | undefined,
+  descending = false
+): number {
   if (!a && !b) return 0;
   if (!a) return 1;
   if (!b) return -1;
-  return a < b ? -1 : a > b ? 1 : 0;
+  const comparison = a < b ? -1 : a > b ? 1 : 0;
+  return descending ? -comparison : comparison;
 }
 
 /**
@@ -254,7 +259,7 @@ export function sortTasks(tasks: TodoTask[], sortOrder: SortOrder): TodoTask[] {
   const sorted = [...tasks];
   switch (sortOrder) {
     case "created-date":
-      sorted.sort((a, b) => compareOptionalDate(a.createdDateTime, b.createdDateTime));
+      sorted.sort((a, b) => compareOptionalDate(a.createdDateTime, b.createdDateTime, true));
       break;
     case "due-date":
       sorted.sort((a, b) => compareOptionalDate(a.dueDateTime, b.dueDateTime));

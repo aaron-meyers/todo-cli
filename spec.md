@@ -124,7 +124,7 @@ Accepted values (canonical name and alias):
 
 | Value | Alias | Behavior |
 |---|---|---|
-| `created-date` | `created` | By task creation date, ascending. Tasks with no creation date sort last. |
+| `created-date` | `created` | By task creation date, descending (newest first). Tasks with no creation date sort last. |
 | `due-date` | `due` | By due date, ascending (earliest first). Tasks with no due date sort last. |
 | `task-title` | `title` | Alphabetically by title, ignoring emoji. |
 | `priority` | `starred` | Important ("starred") tasks first; all other tasks are treated as equal. |

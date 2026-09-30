@@ -57,7 +57,7 @@ todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <
 | `-c, --completed-attachments <mode>` | No | How to handle attachments on **completed** tasks: `default` (download alongside others), `skip` (don't download; render as plain text with a `(skipped)` suffix), or `subfolder` (download into a `completed/` subfolder under the attachments folder). |
 | `--inline-link <mode>` | No | Control inlining of a linked resource into the task title: `auto` (inline when the resource name matches the task title — default), `always`, or `never`. |
 | `--ordering-source <path>` | No | Text file (or directory of files) from To-Do's "Send a copy" to set task order. Must be a directory when combined with `--all`. When combined with `--sort-order`, it breaks ties between equal sort keys. |
-| `-s, --sort-order <order>` (aliases `--sort`) | No | Sort tasks within each group (incomplete and completed are still grouped separately). One of `created-date` (`created`), `due-date` (`due`), `task-title` (`title`), or `priority` (`starred`). Sorting by title ignores emoji, using them only to break ties. Ties are broken by `--ordering-source` when provided. |
+| `-s, --sort-order <order>` (aliases `--sort`) | No | Sort tasks within each group (incomplete and completed are still grouped separately). One of `created-date` (`created`, newest first), `due-date` (`due`, earliest first), `task-title` (`title`), or `priority` (`starred`). Sorting by title ignores emoji, using them only to break ties. Ties are broken by `--ordering-source` when provided. |
 | `--filter-status <status>` | No | Export `all`, `incomplete`, or `completed` tasks. Defaults to `all`. |
 
 ### Global Options
@@ -99,6 +99,9 @@ todo export Daily --ordering-source ~/To-Do/Daily-send.md
 
 # Sort tasks by due date (earliest first)
 todo export Daily --sort-order due-date
+
+# Sort tasks by creation date (newest first)
+todo export Daily --sort-order created-date
 
 # Sort tasks alphabetically by title (emoji ignored), using the short alias
 todo export Shopping -s title

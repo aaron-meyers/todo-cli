@@ -282,13 +282,13 @@ describe("titleSortKey", () => {
 // ---------------------------------------------------------------------------
 
 describe("sortTasks", () => {
-  it("sorts by created date ascending, missing dates last", () => {
+  it("sorts by created date newest first, missing dates last", () => {
     const tasks = [
       { ...task("B"), createdDateTime: "2024-03-01T00:00:00Z" },
       { ...task("NoDate") },
       { ...task("A"), createdDateTime: "2024-01-01T00:00:00Z" },
     ];
-    expect(sortTasks(tasks, "created-date").map((t) => t.title)).toEqual(["A", "B", "NoDate"]);
+    expect(sortTasks(tasks, "created-date").map((t) => t.title)).toEqual(["B", "A", "NoDate"]);
   });
 
   it("sorts by due date ascending, missing dates last", () => {
