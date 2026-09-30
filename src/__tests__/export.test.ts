@@ -14,6 +14,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 import * as fs from "node:fs";
+import * as path from "node:path";
 import { getTaskLists, getTasks, getTaskAttachments, downloadAttachment } from "../graph.js";
 import {
   resolveList,
@@ -1025,6 +1026,30 @@ describe("exportList", () => {
     expect(mockedWriteFileSync.mock.calls[0][0]).toBe("Shopping.md");
   });
 
+  it("writes into an existing directory passed as --out, named after the list", async () => {
+    const mockedStatSync = vi.mocked(fs.statSync);
+    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
+    mockedGetTasks.mockResolvedValue([task("A")]);
+
+    await exportList("Shopping", "exports");
+
+    expect(mockedWriteFileSync.mock.calls[0][0]).toBe(path.join("exports", "Shopping.md"));
+  });
+
+  it("creates the directory passed as --out when it doesn't exist yet but ends with a separator", async () => {
+    const mockedStatSync = vi.mocked(fs.statSync);
+    const mockedExistsSync = vi.mocked(fs.existsSync);
+    const mockedMkdirSync = vi.mocked(fs.mkdirSync);
+    mockedStatSync.mockImplementation(() => { throw new Error("ENOENT"); });
+    mockedExistsSync.mockReturnValue(false);
+    mockedGetTasks.mockResolvedValue([task("A")]);
+
+    await exportList("Shopping", "exports/");
+
+    expect(mockedMkdirSync).toHaveBeenCalledWith("exports/", { recursive: true });
+    expect(mockedWriteFileSync.mock.calls[0][0]).toBe(path.join("exports/", "Shopping.md"));
+  });
+
   it("throws for ambiguous list identifier", async () => {
     await expect(exportList("dai", "out.md")).rejects.toThrow("Ambiguous");
   });
@@ -1377,12 +1402,14 @@ describe("formatYamlScalar", () => {
 
 describe("exportList frontmatter", () => {
   const mockedWriteFileSync = vi.mocked(fs.writeFileSync);
+  const mockedStatSync = vi.mocked(fs.statSync);
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetTaskLists.mockResolvedValue(sampleLists);
     mockedGetTasks.mockResolvedValue([task("A")]);
     mockedWriteFileSync.mockImplementation(() => {});
+    mockedStatSync.mockImplementation(() => { throw new Error("ENOENT"); });
   });
 
   it("omits frontmatter when default out path matches display name", async () => {

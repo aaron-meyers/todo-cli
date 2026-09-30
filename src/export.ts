@@ -456,7 +456,21 @@ export async function exportList(
 ): Promise<void> {
   const lists = await getTaskLists();
   const list = await resolveList(identifier, lists);
-  const resolvedPath = outPath ?? `${list.displayName}.md`;
+  let resolvedPath = outPath ?? `${list.displayName}.md`;
+  let isDir = false;
+  try {
+    isDir = fs.statSync(resolvedPath).isDirectory();
+  } catch {
+    // Path doesn't exist yet; treat trailing separator as a directory hint.
+    isDir = /[\\/]$/.test(resolvedPath);
+  }
+  if (isDir) {
+    const filename = `${sanitizeFilename(list.displayName) || list.id}.md`;
+    if (!fs.existsSync(resolvedPath)) {
+      fs.mkdirSync(resolvedPath, { recursive: true });
+    }
+    resolvedPath = path.join(resolvedPath, filename);
+  }
   await exportResolvedList(list, resolvedPath, orderingSourcePath, metadata, attachments, attachmentPath, inlineLink, completedAttachments, sortOrder);
 }
 

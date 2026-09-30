@@ -51,7 +51,7 @@ todo export --all [-o <directory>] [-m] [-a [path]] [-c <mode>] [--inline-link <
 |---|---|---|
 | `<list-identifier>` | Yes (unless `--all`) | List ID or name (partial, case-insensitive) — positional argument |
 | `--all` | No | Export every task list. Disallows the `<list-identifier>` argument. `--out` becomes a directory (defaults to current directory) and `--ordering-source`, if provided, must be a directory. |
-| `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`). With `--all`, a directory (defaults to current directory). |
+| `-o, --out <path>` | No | Output file path (defaults to `<list-name>.md`). If it's an existing directory (or ends with `/`), the list is written as `<list-name>.md` inside it. With `--all`, always treated as a directory (defaults to current directory). |
 | `-m, --metadata` | No | Include task metadata in Obsidian Tasks emoji format |
 | `-a, --attachments [path]` | No | Download task file attachments and include as Markdown links. Optionally specify a custom attachments folder path. |
 | `-c, --completed-attachments <mode>` | No | How to handle attachments on **completed** tasks: `default` (download alongside others), `skip` (don't download; render as plain text with a `(skipped)` suffix), or `subfolder` (download into a `completed/` subfolder under the attachments folder). |

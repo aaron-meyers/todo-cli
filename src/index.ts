@@ -50,7 +50,7 @@ program
   .description("Export a Microsoft To-Do task list (or all lists) to Markdown")
   .argument("[list]", "Task list ID or name (partial, case-insensitive); omit when using --all")
   .option("--all", "Export every task list in the account")
-  .option("-o, --out <path>", "Output Markdown file path (or directory, with --all); defaults to <list-name>.md (or current directory with --all)")
+  .option("-o, --out <path>", "Output Markdown file path or directory (file is named <list-name>.md inside a directory); defaults to current directory")
   .option("-m, --metadata", "Include task metadata in Obsidian Tasks emoji format")
   .option("-a, --attachments [path]", "Download and include task attachments (optional: attachment folder path)")
   .option("-c, --completed-attachments <mode>", "How to handle attachments on completed tasks: default|skip|subfolder (default: default)")
